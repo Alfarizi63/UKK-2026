@@ -19,7 +19,8 @@ if (isset($_POST['login'])) {
         if (password_verify($password, $user['password'])) {
 
             // Simpan data user ke session
-            $_SESSION['id_user'] = $user['id'];
+            $_SESSION['login']=true;
+            $_SESSION['id'] = $user['id'];
             $_SESSION['name'] = $user['name'];
             $_SESSION['email'] = $user['email'];
             $_SESSION['role'] = $user['role'];

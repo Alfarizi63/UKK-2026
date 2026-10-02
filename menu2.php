@@ -1,11 +1,10 @@
-<?php
 
-session_start();
+<?php
 
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
-// Ambil data guru
+// Ambil data guru beserta email akun user
 $sql = "SELECT 
             t_guru.*,
             t_users.email AS email_user
@@ -15,13 +14,21 @@ $sql = "SELECT
 
 $query = mysqli_query($koneksi, $sql);
 
-// Ambil akun user yang role-nya guru
-$sql_user = "SELECT id, name, email 
-             FROM t_users 
+if (!$query) {
+    die("Query data guru gagal: " . mysqli_error($koneksi));
+}
+
+// Ambil akun yang role-nya guru
+$sql_user = "SELECT id, name, email
+             FROM t_users
              WHERE role = 'guru'
              ORDER BY name ASC";
 
 $query_user = mysqli_query($koneksi, $sql_user);
+
+if (!$query_user) {
+    die("Query akun guru gagal: " . mysqli_error($koneksi));
+}
 
 ?>
 
@@ -41,11 +48,10 @@ $query_user = mysqli_query($koneksi, $sql_user);
     <?php if (isset($_SESSION['pesan'])) { ?>
 
         <p>
-            <?php
-            echo $_SESSION['pesan'];
-            unset($_SESSION['pesan']);
-            ?>
+            <?= htmlspecialchars($_SESSION['pesan']); ?>
         </p>
+
+        <?php unset($_SESSION['pesan']); ?>
 
     <?php } ?>
 
@@ -96,15 +102,11 @@ $query_user = mysqli_query($koneksi, $sql_user);
 
                         <?php while ($user = mysqli_fetch_assoc($query_user)) { ?>
 
-                            <option value="<?php echo $user['id']; ?>">
+                            <option value="<?= $user['id']; ?>">
 
-                                <?php
-                                echo htmlspecialchars($user['name']);
-                                ?>
+                                <?= htmlspecialchars($user['name']); ?>
                                 -
-                                <?php
-                                echo htmlspecialchars($user['email']);
-                                ?>
+                                <?= htmlspecialchars($user['email']); ?>
 
                             </option>
 
@@ -121,15 +123,8 @@ $query_user = mysqli_query($koneksi, $sql_user);
                 <td>
 
                     <select name="status_aktif" required>
-
-                        <option value="1">
-                            Aktif
-                        </option>
-
-                        <option value="0">
-                            Tidak Aktif
-                        </option>
-
+                        <option value="1">Aktif</option>
+                        <option value="0">Tidak Aktif</option>
                     </select>
 
                 </td>
@@ -137,11 +132,9 @@ $query_user = mysqli_query($koneksi, $sql_user);
 
             <tr>
                 <td colspan="3">
-
                     <button type="submit">
                         Tambah Guru
                     </button>
-
                 </td>
             </tr>
 
@@ -156,9 +149,8 @@ $query_user = mysqli_query($koneksi, $sql_user);
     <table border="1" cellpadding="8" cellspacing="0">
 
         <thead>
-
             <tr>
-                <th>No</th>
+                <th>ID</th>
                 <th>NIP</th>
                 <th>Nama</th>
                 <th>Email</th>
@@ -166,98 +158,78 @@ $query_user = mysqli_query($koneksi, $sql_user);
                 <th>User ID</th>
                 <th>Aksi</th>
             </tr>
-
         </thead>
 
         <tbody>
 
-        <?php
+            <?php if (mysqli_num_rows($query) > 0) { ?>
 
-        $no = 1;
+                <?php while ($guru = mysqli_fetch_assoc($query)) { ?>
 
-        if (mysqli_num_rows($query) > 0) {
+                    <tr>
 
-            while ($guru = mysqli_fetch_assoc($query)) {
+                        <td>
+                            <?= $guru['id']; ?>
+                        </td>
 
-        ?>
+                        <td>
+                            <?= htmlspecialchars($guru['nip']); ?>
+                        </td>
 
-            <tr>
+                        <td>
+                            <?= htmlspecialchars($guru['nama']); ?>
+                        </td>
 
-                <td>
-                    <?php echo $no++; ?>
-                </td>
+                        <td>
+                            <?= htmlspecialchars($guru['email_user'] ?? $guru['email'] ?? '-'); ?>
+                        </td>
 
-                <td>
-                    <?php echo htmlspecialchars($guru['nip']); ?>
-                </td>
+                        <td>
 
-                <td>
-                    <?php echo htmlspecialchars($guru['nama']); ?>
-                </td>
+                            <?php if ($guru['status_aktif'] == 1) { ?>
+                                Aktif
+                            <?php } else { ?>
+                                Tidak Aktif
+                            <?php } ?>
 
-                <td>
-                    <?php echo htmlspecialchars($guru['email']); ?>
-                </td>
+                        </td>
 
-                <td>
+                        <td>
+                            <?= htmlspecialchars($guru['user_id'] ?? '-'); ?>
+                        </td>
 
-                    <?php if ($guru['status_aktif'] == 1) { ?>
+                        <td>
 
-                        Aktif
+                            <a href="edit_guru.php?id=<?= $guru['id']; ?>">
+                                Edit
+                            </a>
 
-                    <?php } else { ?>
+                            |
 
-                        Tidak Aktif
+                            <a href="proses_guru.php?aksi=hapus&id=<?= $guru['id']; ?>"
+                               onclick="return confirm('Yakin ingin menghapus data guru ini?');">
+                                Hapus
+                            </a>
 
-                    <?php } ?>
+                        </td>
 
-                </td>
+                    </tr>
 
-                <td>
-                    <?php echo htmlspecialchars($guru['user_id']); ?>
-                </td>
+                <?php } ?>
 
-                <td>
+            <?php } else { ?>
 
-                    <a href="edit_guru.php?id=<?php echo $guru['id']; ?>">
-                        Edit
-                    </a>
+                <tr>
+                    <td colspan="7">
+                        Belum ada data guru.
+                    </td>
+                </tr>
 
-                    |
-
-                    <a
-                        href="proses_guru.php?aksi=hapus&id=<?php echo $guru['id']; ?>"
-                        onclick="return confirm('Yakin ingin menghapus data guru ini?');"
-                    >
-                        Hapus
-                    </a>
-
-                </td>
-
-            </tr>
-
-        <?php
-
-            }
-
-        } else {
-
-        ?>
-
-            <tr>
-
-                <td colspan="7">
-                    Belum ada data guru.
-                </td>
-
-            </tr>
-
-        <?php } ?>
+            <?php } ?>
 
         </tbody>
 
     </table>
 
 </body>
-
 </html>

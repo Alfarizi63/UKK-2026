@@ -37,7 +37,7 @@ $query = mysqli_query($koneksi, $sql);
 
     <h2>Tambah Data Siswa</h2>
 
-    <form action="proses_siswa.php" method="POST">
+    <form action="menu1.php" method="POST">
 
         <input type="hidden" name="aksi" value="tambah">
 
@@ -124,7 +124,7 @@ $query = mysqli_query($koneksi, $sql);
 
         <thead>
             <tr>
-                <th>No</th>
+                <th>id</th>
                 <th>NIS</th>
                 <th>NISN</th>
                 <th>Nama</th>
@@ -136,21 +136,18 @@ $query = mysqli_query($koneksi, $sql);
             </tr>
         </thead>
 
-        <tbody>
+        <body>
+         <?php
 
-        <?php
+if (mysqli_num_rows($query) > 0) {
 
-        $no = 1;
+    while ($siswa = mysqli_fetch_assoc($query)) {
 
-        if (mysqli_num_rows($query) > 0) {
+?>
 
-            while ($siswa = mysqli_fetch_assoc($query)) {
-
-        ?>
-
-            <tr>
-
-                <td><?php echo $no++; ?></td>
+<tr>
+    <td><?php echo $siswa['id']; ?></td>
+               <td><?php echo $siswa['id']; ?></td>
 
                 <td>
                     <?php echo htmlspecialchars($siswa['nis']); ?>
@@ -194,19 +191,14 @@ $query = mysqli_query($koneksi, $sql);
 
                 <td>
 
-                    <a href="edit_siswa.php?id=<?php echo $siswa['id']; ?>">
-                        Edit
-                    </a>
+                    <a href="edit_siswa.php?id=<?= $siswa['id']; ?>">Edit</a>
 
-                    |
+<br><br>
 
-                    <a
-                        href="proses_siswa.php?aksi=hapus&id=<?php echo $siswa['id']; ?>"
-                        onclick="return confirm('Yakin ingin menghapus siswa ini?');"
-                    >
-                        Hapus
-                    </a>
-
+<a href="hapus_siswa.php?id=<?= $siswa['id']; ?>"
+   onclick="return confirm('Yakin ingin menghapus data siswa ini?')">
+   Hapus
+</a>
                 </td>
 
             </tr>
