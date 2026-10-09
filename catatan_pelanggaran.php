@@ -216,6 +216,7 @@ $query_kategori = mysqli_query($koneksi, $sql_kategori);
 
 
     <hr>
+    <a href="dashboard.php">Kembali ke Dashboard</a>
 
 
     <h2>Data Pelanggaran</h2>
