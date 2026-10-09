@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['aksi'] ?? '') == 'tambah') 
     // Validasi input
     if ($nip == '' || $nama == '' || $email == '' || $user_id <= 0) {
         $_SESSION['pesan'] = "Semua data wajib diisi!";
-        header("Location: menu2.php");
+        header("Location: kelola_guru.php");
         exit;
     }
 
@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['aksi'] ?? '') == 'tambah') 
 
     if (mysqli_num_rows($hasil) > 0) {
         $_SESSION['pesan'] = "NIP sudah terdaftar!";
-        header("Location: menu2.php");
+        header("Location: kelola_guru.php");
         exit;
     }
 
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['aksi'] ?? '') == 'tambah') 
 
     if (mysqli_num_rows($hasil_user) == 0) {
         $_SESSION['pesan'] = "Akun guru tidak ditemukan!";
-        header("Location: menu2.php");
+        header("Location: kelola_guru.php");
         exit;
     }
 
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['aksi'] ?? '') == 'tambah') 
 
     if (mysqli_num_rows($hasil_relasi) > 0) {
         $_SESSION['pesan'] = "Akun guru tersebut sudah digunakan!";
-        header("Location: menu2.php");
+        header("Location: kelola_guru.php");
         exit;
     }
 
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['aksi'] ?? '') == 'tambah') 
 
     }
 
-    header("Location: menu2.php");
+    header("Location: kelola_guru.php");
     exit;
 }
 
@@ -109,7 +109,7 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
 
     if ($id <= 0) {
         $_SESSION['pesan'] = "ID guru tidak valid!";
-        header("Location: menu2.phpphp");
+        header("Location: kelola_guru.php");
         exit;
     }
 
@@ -134,7 +134,7 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
 
     }
 
-    header("Location: menu2.php");
+    header("Location: kelola_guru.php");
     exit;
 }
 
@@ -144,7 +144,7 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
 // =====================================
 
 $_SESSION['pesan'] = "Aksi tidak dikenali!";
-header("Location: menu2.ph");
+header("Location: kelola_guru.php");
 exit;
 
 ?>

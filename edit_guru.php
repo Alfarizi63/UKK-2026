@@ -102,34 +102,32 @@ if (!$query_user) {
                     >
                 </td>
             </tr>
+<tr>
+    <td> Akun</td>
+    <td>:</td>
+    <td>
+        <input type="text" name="name"
+               placeholder="Masukkan  akun" required>
+    </td>
+</tr>
 
-            <tr>
-                <td>Akun Guru</td>
-                <td>:</td>
-                <td>
-                    <select name="user_id" required>
+<tr>
+    <td>Email</td>
+    <td>:</td>
+    <td>
+        <input type="email" name="email"
+               placeholder="Masukkan email" required>
+    </td>
+</tr>
 
-                        <option value="">
-                            -- Pilih Akun Guru --
-                        </option>
-
-                        <?php while ($user = mysqli_fetch_assoc($query_user)) { ?>
-
-                            <option
-                                value="<?= $user['id']; ?>"
-                                <?= ($guru['user_id'] == $user['id']) ? 'selected' : ''; ?>
-                            >
-                                <?= htmlspecialchars($user['name']); ?>
-                                -
-                                <?= htmlspecialchars($user['email']); ?>
-                            </option>
-
-                        <?php } ?>
-
-                    </select>
-                </td>
-            </tr>
-
+<tr>
+    <td>Password</td>
+    <td>:</td>
+    <td>
+        <input type="password" name="password"
+               placeholder="Masukkan password" required>
+    </td>
+</tr>
             <tr>
                 <td>Status Aktif</td>
                 <td>:</td>
@@ -156,7 +154,7 @@ if (!$query_user) {
                         Simpan Perubahan
                     </button>
 
-                    <a href="menu2.php">
+                    <a href="kelola_guru.php">
                         Batal
                     </a>
                 </td>

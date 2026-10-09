@@ -1,0 +1,124 @@
+<?php
+include 'includes/cek_session.php';
+include 'config/koneksi.php';
+
+$sql = "
+    SELECT
+        wk.id,
+        ta.nama AS tahun_ajaran,
+        k.nama AS nama_kelas,
+        g.nama AS nama_guru,
+        wk.tanggal_mulai,
+        wk.tanggal_selesai,
+        wk.status_aktif
+    FROM t_wali_kelas wk
+    LEFT JOIN t_tahun_ajaran ta
+        ON wk.tahun_ajaran_id = ta.id
+    LEFT JOIN t_kelas k
+        ON wk.kelas_id = k.id
+    LEFT JOIN t_guru g
+        ON wk.guru_id = g.id
+    ORDER BY wk.id DESC
+";
+
+$query = mysqli_query($koneksi, $sql);
+
+if (!$query) {
+    die("Gagal mengambil data wali kelas: " . mysqli_error($koneksi));
+}
+?>
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Wali Kelas</title>
+</head>
+<body>
+
+    <h2>Kelola Wali Kelas</h2>
+    <p>Halaman pengelolaan data wali kelas sekolah.</p>
+
+    <a href="dashboard.php">Kembali ke Dashboard</a>
+    |
+    <a href="tambah_wali_kelas.php">Tambah Wali Kelas</a>
+
+    <br><br>
+
+    <table border="1" cellpadding="8" cellspacing="0">
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Tahun Ajaran</th>
+                <th>Kelas</th>
+                <th>Nama Guru</th>
+                <th>Tanggal Mulai</th>
+                <th>Tanggal Selesai</th>
+                <th>Status</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <?php
+            $no = 1;
+
+            if (mysqli_num_rows($query) > 0) {
+                while ($row = mysqli_fetch_assoc($query)) {
+            ?>
+                <tr>
+                    <td><?= $no++ ?></td>
+
+                    <td>
+                        <?= htmlspecialchars($row['tahun_ajaran'] ?? '-') ?>
+                    </td>
+
+                    <td>
+                        <?= htmlspecialchars($row['nama_kelas'] ?? '-') ?>
+                    </td>
+
+                    <td>
+                        <?= htmlspecialchars($row['nama_guru'] ?? '-') ?>
+                    </td>
+
+                    <td>
+                        <?= htmlspecialchars($row['tanggal_mulai']) ?>
+                    </td>
+
+                    <td>
+                        <?= htmlspecialchars($row['tanggal_selesai']) ?>
+                    </td>
+
+                    <td>
+                        <?= $row['status_aktif'] == 1
+                            ? 'Aktif'
+                            : 'Tidak Aktif' ?>
+                    </td>
+
+                    <td>
+                        <a href="edit_wali_kelas.php?id=<?= (int) $row['id'] ?>">
+                            Edit
+                        </a>
+                        |
+                        <a
+                            href="hapus_wali_kelas.php?id=<?= (int) $row['id'] ?>"
+                            onclick="return confirm('Yakin ingin menghapus data wali kelas ini?')"
+                        >
+                            Hapus
+                        </a>
+                    </td>
+                </tr>
+            <?php
+                }
+            } else {
+            ?>
+                <tr>
+                    <td colspan="8">Belum ada data wali kelas.</td>
+                </tr>
+            <?php } ?>
+        </tbody>
+    </table>
+
+</body>
+</html>
