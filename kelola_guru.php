@@ -39,10 +39,61 @@ if (!$query_user) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kelola Guru</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
 </head>
 
 <body>
-
+<div class="container-fluid">
+    <div class="row">
+        <!-- SIDEBAR -->
+        <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3">
+            <h4 class="text-white mb-4">
+                My Website
+            </h4>
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item mb-2">
+                    <a href="dashboard.php" class="nav-link text-white">
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_siswa.php" class="nav-link text-white">
+                        Data Siswa
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_guru.php" class="nav-link active">
+                        Data Guru
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_kelas.php" class="nav-link text-white">
+                        Kelas
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="laporan.php" class="nav-link text-white">
+                        Laporan
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="tentang_saya.php" class="nav-link text-white">
+                        About Me
+                    </a>
+                </li>
+                <hr class="text-secondary">
+                <li class="nav-item">
+                    <a href="login.php" class="nav-link text-danger">
+                        Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <!-- KONTEN -->
+        <main class="col-md-9 col-lg-10 p-4">
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.3/dist/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
     <h1>Kelola Guru</h1>
 
     <?php if (isset($_SESSION['pesan'])) { ?>
@@ -63,7 +114,7 @@ if (!$query_user) {
 
         <input type="hidden" name="aksi" value="tambah">
 
-        <table>
+        <table class="table table-striped table-dark">
 
             <tr>
                 <td>NIP</td>
@@ -147,7 +198,7 @@ if (!$query_user) {
 
     <h2>Data Guru</h2>
 
-    <table border="1" cellpadding="8" cellspacing="0">
+    <table class="table table-striped table-dark">
 
         <thead>
             <tr>
@@ -161,7 +212,7 @@ if (!$query_user) {
             </tr>
         </thead>
 
-        <tbody>
+        <body>
 
             <?php if (mysqli_num_rows($query) > 0) { ?>
 
@@ -202,14 +253,14 @@ if (!$query_user) {
                         <td>
 
                             <a href="edit_guru.php?id=<?= $guru['id']; ?>">
-                                Edit
+                            <button type="button" class="btn btn-primary">edit</button>
                             </a>
 
                             |
 
                             <a href="proses_guru.php?aksi=hapus&id=<?= $guru['id']; ?>"
                                onclick="return confirm('Yakin ingin menghapus data guru ini?');">
-                                Hapus
+                               <button type="button" class="btn btn-danger">hapus</button>
                             </a>
 
                         </td>
@@ -228,7 +279,7 @@ if (!$query_user) {
 
             <?php } ?>
 
-        </tbody>
+        </body>
 
     </table>
 
