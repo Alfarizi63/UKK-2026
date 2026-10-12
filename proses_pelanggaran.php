@@ -32,7 +32,7 @@ if ($guru_id <= 0) {
 $stmt = mysqli_prepare(
     $koneksi,
     "INSERT INTO t_pelanggaran
-    (siswa_id, guru_id, jenis_pelanggaran, tanggal, keterangan)
+    (siswa_id, guru_id, jenis_pelanggaran, keterangan)
     VALUES (?, ?, ?, ?, ?)"
 );
 

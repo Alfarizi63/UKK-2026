@@ -139,6 +139,7 @@ if (!$query_user) {
             </tr>
 
         </table>
+        <a href="dashboard.php">Kembali ke Dashboard</a>
 
     </form>
 
