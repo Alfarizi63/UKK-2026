@@ -28,7 +28,7 @@ if (!mysqli_stmt_execute($stmt)) {
 
 // Periksa apakah data benar-benar terhapus
 if (mysqli_stmt_affected_rows($stmt) > 0) {
-    header("Location: menu1.php");
+    header("Location: kelola_siswa.php");
     exit;
 } else {
     die("Data dengan ID $id tidak ditemukan di tabel t_siswa!");
