@@ -26,14 +26,14 @@ if (isset($_POST['update'])) {
         WHERE id='$id'";
 
     if (mysqli_query($koneksi, $query)) {
-        header("Location: menu1.php");
+        header("Location: kelola_siswa.php");
         exit;
     } else {
         die("Gagal mengupdate data: " . mysqli_error($koneksi));
     }
 
 } else {
-    header("Location: menu1.php");
+    header("Location: kelola_siswa.php");
     exit;
 }
 ?>

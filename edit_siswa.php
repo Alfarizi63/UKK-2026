@@ -97,7 +97,7 @@ if (!$siswa) {
         
         </button>
 
-        <a href="menu1.php" class="batal">Batal</a>
+        <a href="kelola_siswa.php" class="batal">Batal</a>
 
     </form>
 
