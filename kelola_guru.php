@@ -114,7 +114,7 @@ if (!$query_user) {
 
         <input type="hidden" name="aksi" value="tambah">
 
-        <table class="table table-striped table-dark">
+        <table class="table">
 
             <tr>
                 <td>NIP</td>
@@ -198,7 +198,7 @@ if (!$query_user) {
 
     <h2>Data Guru</h2>
 
-    <table class="table table-striped table-dark">
+   <table class="table">
 
         <thead>
             <tr>

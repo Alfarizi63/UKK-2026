@@ -13,76 +13,67 @@ $nama = trim($_POST['nama'] ?? '');
 $jenis_kelamin = trim($_POST['jenis_kelamin'] ?? '');
 $tanggal_lahir = trim($_POST['tanggal_lahir'] ?? '');
 $alamat = trim($_POST['alamat'] ?? '');
-$status = trim($_POST['status'] ?? 'Aktif');
+$status_aktif = (int) ($_POST['status_aktif'] ?? 1);
 
 if (
     $nis === '' ||
+    $nisn === '' ||
     $nama === '' ||
     $jenis_kelamin === '' ||
     $tanggal_lahir === '' ||
     $alamat === ''
 ) {
     echo "<script>
-        alert('Data wajib harus diisi!');
-        window.history.back();
+        alert('Semua data wajib diisi!');
+        history.back();
     </script>";
     exit;
 }
 
-if (!in_array($jenis_kelamin, ['Laki-laki', 'Perempuan'], true)) {
+if (!in_array($jenis_kelamin, ['L', 'P', 'Laki-laki', 'Perempuan'], true)) {
     echo "<script>
         alert('Jenis kelamin tidak valid!');
-        window.history.back();
+        history.back();
     </script>";
     exit;
 }
 
-if (!in_array($status, ['Aktif', 'Tidak Aktif'], true)) {
-    $status = 'Aktif';
+if (!in_array($status_aktif, [0, 1], true)) {
+    $status_aktif = 1;
 }
 
-$stmt = mysqli_prepare(
-    $koneksi,
-    "INSERT INTO t_siswa
-    (nis, nisn, nama, jenis_kelamin, tanggal_lahir, alamat, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?)"
-);
+$sql = "INSERT INTO t_siswa
+        (nis, nisn, nama, jenis_kelamin, tanggal_lahir, alamat, status_aktif)
+        VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+$stmt = mysqli_prepare($koneksi, $sql);
 
 if (!$stmt) {
-    die("Gagal menyiapkan query: " . mysqli_error($koneksi));
+    die("Query gagal disiapkan: " . mysqli_error($koneksi));
 }
 
 mysqli_stmt_bind_param(
     $stmt,
-    "sssssss",
+    "ssssssi",
     $nis,
     $nisn,
     $nama,
     $jenis_kelamin,
     $tanggal_lahir,
     $alamat,
-    $status
+    $status_aktif
 );
 
 if (mysqli_stmt_execute($stmt)) {
     mysqli_stmt_close($stmt);
 
-    echo "<script>
-        alert('Data siswa berhasil ditambahkan!');
-        window.location.href = 'kelola_siswa.php';
-    </script>";
+    header("Location: kelola_siswa.php?pesan=berhasil");
     exit;
 }
 
-if (mysqli_stmt_errno($stmt) == 1062) {
-    echo "<script>
-        alert('NIS atau NISN sudah terdaftar!');
-        window.history.back();
-    </script>";
-} else {
-    echo "Gagal menambahkan siswa: " .
-        htmlspecialchars(mysqli_stmt_error($stmt));
-}
-
+$error = mysqli_stmt_error($stmt);
 mysqli_stmt_close($stmt);
+
+echo "Gagal menambahkan siswa: " . htmlspecialchars($error);
+echo "<br><a href='kelola_siswa.php'>Kembali</a>";
 ?>
