@@ -59,16 +59,17 @@ if (!$query_laporan) {
 </head>
 <body>
     
+
 <div class="container-fluid">
     <div class="row">
         <!-- SIDEBAR -->
-       <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3 position-fixed" style="top: 0; bottom: 0; overflow-y: auto;">
+       <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3 position-fixed top-0 start-0 overflow-auto">
             <h4 class="text-white mb-4">
                 My Website
             </h4>
             <ul class="nav nav-pills flex-column">
                 <li class="nav-item mb-2">
-                    <a href="dashboard.php"  class="nav-link text-white">
+                    <a href="dashboard.php" class="nav-link text-white">
                         Dashboard
                     </a>
                 </li>
@@ -88,30 +89,50 @@ if (!$query_laporan) {
                     </a>
                 </li>
                 <li class="nav-item mb-2">
+                    <a href="kelola_kategori_pelanggaran.php" class="nav-link text-white">
+                        kelola kategori pelanggaran
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_tahun_ajaran.php" class="nav-link text-white">
+                        Kelola tahun ajaran
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
                     <a href="laporan.php" class="nav-link active">
                         Laporan
-                        </a>
-     
+                    </a>
                      <li class="nav-item mb-2">
                     <a href="kelola_wali_kelas.php" class="nav-link text-white">
                         kelola wali kelas
                     </a>
                 </li>
-                      <li class="nav-item mb-2">
-                    <a href="kelola_tahun_ajaran.php" class="nav-link text-white">
-                        tahun ajaran
-                    </a>
-                </li>
+                      
                       <li class="nav-item mb-2">
                     <a href="kelola_penempatan_siswa.php" class="nav-link text-white">
                         kelola penempatan siswa
                     </a>
                 </li>
+                
                  <li class="nav-item mb-2">
                     <a href="rekap_point.php" class="nav-link text-white">
                         rekap poin
                     </a>
                 </li>
+                 <li class="nav-item mb-2">
+                    <a href="riwayat.php" class="nav-link text-white">
+                        riwayat
+                    </a>
+                </li>
+                 <li class="nav-item mb-2">
+                    <a href="kelola_jenis_pelanggaran.php" class="nav-link text-white">
+                        kelola jenis pelanggaran
+                    </a>
+                </li>
+                 <li class="nav-item mb-2">
+                    <a href="export_pelanggaran.php" class="nav-link text-white">
+                        export pelanggaran
+                    </a>
                 </li>
                 <li class="nav-item mb-2">
                     <a href="tentang_saya.php" class="nav-link text-white">
@@ -125,8 +146,6 @@ if (!$query_laporan) {
                     </a>
                 </li>
                 
-            </ul>
-        </div>
             </ul>
         </div>
         <!-- KONTEN -->
