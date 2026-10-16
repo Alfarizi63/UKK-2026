@@ -32,16 +32,103 @@ if (!$query) {
 </head>
 <body>
 
-<h2>Penempatan Siswa</h2>
+
+<br><br>
+
+
+    <body>
+       <div class="container-fluid">
+    <div class="row">
+
+        <!-- SIDEBAR TETAP ADA -->
+        <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3 position-fixed"
+             style="top: 0; bottom: 0; overflow-y: auto;">
+
+            <h4 class="text-white mb-4">My Website</h4>
+
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item mb-2">
+                    <a href="dashboard.php" class="nav-link text-white">
+                        Dashboard
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="kelola_siswa.php" class="nav-link text-white">
+                        Data Siswa
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="kelola_guru.php" class="nav-link text-white">
+                        Data Guru
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="kelola_kelas.php" class="nav-link text-white">
+                        Kelas
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="laporan.php" class="nav-link text-white">
+                        Laporan
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="kelola_wali_kelas.php" class="nav-link text-white">
+                        Kelola Wali Kelas
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="kelola_tahun_ajaran.php" class="nav-link text-white">
+                        Tahun Ajaran
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="kelola_penempatan_siswa.php" class="nav-link active">
+                        Penempatan Siswa
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="rekap_point.php" class="nav-link text-white">
+                        Rekap Poin
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="tentang_saya.php" class="nav-link text-white">
+                        About Me
+                    </a>
+                </li>
+
+                <hr class="text-secondary">
+
+                <li class="nav-item">
+                    <a href="logout.php" class="nav-link text-danger">
+                        Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- KONTEN DI SEBELAH KANAN -->
+        <main class="col-md-9 col-lg-10 p-4 offset-md-3 offset-lg-2">
+            <h2>Penempatan Siswa</h2>
 <p>Kelola penempatan siswa berdasarkan kelas dan tahun ajaran.</p>
 
 <a href="dashboard.php">Kembali ke Dashboard</a> |
 <a href="tambah_penempatan_siswa.php">Tambah Penempatan Siswa</a>
 
-<br><br>
 
+          
 <table border="1" cellpadding="8" cellspacing="0">
-    <thead>
+    <head>
         <tr>
             <th>No</th>
             <th>NIS</th>
@@ -50,9 +137,12 @@ if (!$query) {
             <th>Tahun Ajaran</th>
             <th>Aksi</th>
         </tr>
-    </thead>
+    </head>
 
-    <tbody>
+        </main>
+
+    </div>
+</div>
     <?php
     $no = 1;
 
@@ -80,7 +170,7 @@ if (!$query) {
             <td colspan="6">Belum ada data penempatan siswa.</td>
         </tr>
     <?php } ?>
-    </tbody>
+    </body>
 </table>
 
 </body>

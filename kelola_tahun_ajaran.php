@@ -20,6 +20,77 @@ if (!$query) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
 </head>
 <body>
+    <div class="container-fluid">
+    <div class="row">
+        <!-- SIDEBAR -->
+      <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3 position-fixed" style="top: 0; bottom: 0; overflow-y: auto;">
+            <h4 class="text-white mb-4">
+                My Website
+            </h4>
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item mb-2">
+                    <a href="dashboard.php" class="nav-link text-white">
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_siswa.php" class="nav-link text-white">
+                        Data Siswa
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_guru.php" class="nav-link text-white">
+                        Data Guru
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="kelola_kelas.php" class="nav-link text-white">
+                        Kelas
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="laporan.php" class="nav-link text-white">
+                        Laporan
+
+                     <li class="nav-item mb-2">
+                    <a href="kelola_wali_kelas.php" class="nav-link text-white">
+                        kelola wali kelas
+                    </a>
+                </li>
+                      <li class="nav-item mb-2">
+                    <a href="kelola_tahun_ajaran.php" class="nav-link active">
+                        tahun ajaran
+                    </a>
+                </li>
+                      <li class="nav-item mb-2">
+                    <a href="kelola_penempatan_siswa.php" class="nav-link text-white">
+                        kelola penempatan siswa
+                    </a>
+                </li>
+                 <li class="nav-item mb-2">
+                    <a href="rekap_point.php" class="nav-link text-white">
+                        rekap poin
+                    </a>
+                </li>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="tentang_saya.php" class="nav-link text-white">
+                        About Me
+                    </a>
+                </li>
+                <hr class="text-secondary">
+                <li class="nav-item">
+                    <a href="login.php" class="nav-link text-danger">
+                        Logout
+                    </a>
+                </li>
+                
+            </ul>
+        </div>
+            </ul>
+        </div>
+        <!-- KONTEN -->
+         <main class="col-md-9 col-lg-10 p-4 offset-md-3 offset-lg-2">
 
     <h2>Kelola Tahun Ajaran</h2>
     <p>Halaman pengelolaan data tahun ajaran sekolah.</p>

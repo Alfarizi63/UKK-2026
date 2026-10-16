@@ -15,7 +15,7 @@ include 'includes/cek_session.php';
 <div class="container-fluid">
     <div class="row">
         <!-- SIDEBAR -->
-        <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3">
+       <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3 position-fixed top-0 start-0 overflow-auto">
             <h4 class="text-white mb-4">
                 My Website
             </h4>
@@ -44,6 +44,26 @@ include 'includes/cek_session.php';
                     <a href="laporan.php" class="nav-link text-white">
                         Laporan
                     </a>
+                     <li class="nav-item mb-2">
+                    <a href="kelola_wali_kelas.php" class="nav-link text-white">
+                        kelola wali kelas
+                    </a>
+                </li>
+                      <li class="nav-item mb-2">
+                    <a href="kelola_tahun_ajaran.php" class="nav-link text-white">
+                        tahun ajaran
+                    </a>
+                </li>
+                      <li class="nav-item mb-2">
+                    <a href="kelola_penempatan_siswa.php" class="nav-link text-white">
+                        kelola penempatan siswa
+                    </a>
+                </li>
+                 <li class="nav-item mb-2">
+                    <a href="rekap_point.php" class="nav-link text-white">
+                        rekap poin
+                    </a>
+                </li>
                 </li>
                 <li class="nav-item mb-2">
                     <a href="tentang_saya.php" class="nav-link text-white">
@@ -56,10 +76,11 @@ include 'includes/cek_session.php';
                         Logout
                     </a>
                 </li>
+                
             </ul>
         </div>
         <!-- KONTEN -->
-        <main class="col-md-9 col-lg-10 p-4">
+         <main class="col-md-9 col-lg-10 p-4 offset-md-3 offset-lg-2">
             <h2>Dashboard</h2>
             <p>
                 Selamat datang di halaman dashboard.
@@ -105,24 +126,6 @@ include 'includes/cek_session.php';
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
-</div>
-    <h2>Dashboard</h2>
-    <p>
-        Selamat datang,
-        <?php echo $_SESSION['nama_user']; ?>
-    </p>
-    <p>
-        Anda berhasil login.
-    </p>
-    <a href="logout.php">Logout</a>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>dashboard-warung abc</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
 </head>
 <body>
@@ -159,5 +162,8 @@ include 'includes/cek_session.php';
       <th>
         <td></td>
       </th>
+        </main>
+    </div>
+</div>
 </body>
 </html>
