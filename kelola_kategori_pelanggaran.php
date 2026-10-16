@@ -50,7 +50,7 @@ if (!$query) {
                     </a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a href="kelola_kategori_pelanggaran.php" class="nav-link active">
+                    <a href="kelola_kategori_pelanggaran.php" class="nav-link ">
                         Kelola kategori pelanggaran
                     </a>
                 </li>
@@ -150,14 +150,18 @@ if (!$query) {
             <td>
                 <?= $data['status_aktif'] ? 'Aktif' : 'Tidak Aktif'; ?>
             </td>
-            <td>
-                <a href="edit_kategori_pelanggaran.php?id=<?= $data['id']; ?>">Edit</a>
-                |
-                <a href="hapus_kategori_pelanggaran.php?id=<?= $data['id']; ?>"
-                   onclick="return confirm('Yakin ingin menghapus kategori ini?')">
-                    Hapus
-                </a>
-            </td>
+     
+<td>
+    <a href="edit_kategori_pelanggaran.php?id=<?= (int) $data['id']; ?>">
+        Edit
+    </a>
+    |
+    <a href="hapus.php?id=<?= (int) $data['id']; ?>"
+       onclick="return confirm('Yakin ingin menghapus kategori ini?')">
+        Hapus
+    </a>
+</td>
+
         </tr>
         <?php } ?>
     </tbody>
