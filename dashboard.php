@@ -11,6 +11,8 @@ include 'includes/cek_session.php';
 </head>
 
 <body>
+<?php if ($_SESSION['role'] == 'admin' ) { ?>
+     
 
 <div class="container-fluid">
     <div class="row">
@@ -93,7 +95,7 @@ include 'includes/cek_session.php';
                 </li>
                 <hr class="text-secondary">
                 <li class="nav-item">
-                    <a href="login.php" class="nav-link text-danger">
+                    <a href="logout.php" class="nav-link text-danger">
                         Logout
                     </a>
                 </li>
@@ -102,10 +104,8 @@ include 'includes/cek_session.php';
         </div>
         <!-- KONTEN -->
          <main class="col-md-9 col-lg-10 p-4 offset-md-3 offset-lg-2">
-            <h2>Dashboard</h2>
-            <p>
-                Selamat datang di halaman dashboard.
-            </p>
+            <h1>selamat datang, <?php echo $_SESSION['name'];?></h1>
+    <p>anda login sebagai: <?php echo $_SESSION['role']?></p>
             <div class="row">
                 <!-- CARD DATA SISWA -->
                 <div class="col-md-4 mb-3">
@@ -147,14 +147,14 @@ include 'includes/cek_session.php';
                     </div>
                 </div>
             </div>
+            <?php } ?>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
 </head>
 <body>
 <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.3/dist/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
-    <h1>selamat datang, <?php echo $_SESSION['name'];?></h1>
-    <p>anda login sebagai: <?php echo $_SESSION['role']?></p>
+
 
     <ul>
 
@@ -174,14 +174,57 @@ include 'includes/cek_session.php';
          <?php } ?>
 
     <?php if ($_SESSION['role'] == 'guru' ) { ?>
-      <li><a href="menu3.php">menu 3</a></li>
-           <li><a href="menu4.php">menu 4</a></li>
+<div class="container-fluid">
+    <div class="row">
+        <!-- SIDEBAR -->
+       <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3 position-fixed top-0 start-0 overflow-auto">
+            <h4 class="text-white mb-4">
+                My Website
+            </h4>
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item mb-2">
+                    <a href="dashboard.php" class="nav-link active">
+                        Dashboard
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="catatan_pelanggaran.php" class="nav-link active">
+                        catatan
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="tindakan.php" class="nav-link active">
+                        tindakan
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="laporan.php" class="nav-link active">
+                        laporan
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="riwayat.php" class="nav-link active">
+                        riwayat
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="rekap_point.php" class="nav-link active">
+                        rekap point
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <!-- KONTEN -->
+         <main class="col-md-9 col-lg-10 p-4 offset-md-3 offset-lg-2">
+                <h1>selamat datang, <?php echo $_SESSION['name'];?></h1>
+    <p>anda login sebagai: <?php echo $_SESSION['role']?></p>
 <?php } ?>
     </ul>
     <a href="login.php">logout</a>
     <table class="table">
       <th>
-        <td></td>
+        <td>:</td>
       </th>
         </main>
     </div>

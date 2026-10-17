@@ -50,7 +50,7 @@ if (!$query) {
                     </a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a href="kelola_kategori_pelanggaran.php" class="nav-link ">
+                    <<a href="kelola_kelas.php" class="nav-link active">
                         Kelola kategori pelanggaran
                     </a>
                 </li>
@@ -105,7 +105,7 @@ if (!$query) {
                 </li>
                 <hr class="text-secondary">
                 <li class="nav-item">
-                    <a href="login.php" class="nav-link text-danger">
+                    <a href="logout.php" class="nav-link text-danger">
                         Logout
                     </a>
                 </li>

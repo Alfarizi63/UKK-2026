@@ -42,6 +42,8 @@ $query_kategori = mysqli_query($koneksi, $sql_kategori);
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
     <h1>selamat datang, <?php echo $_SESSION['name'];?></h1>
     <p>anda login sebagai: <?php echo $_SESSION['role']?></p>
+    <?php if ($_SESSION['role'] == 'admin'  )  {?>
+
     <div class="container-fluid">
     <div class="row">
         <!-- SIDEBAR -->
@@ -132,7 +134,54 @@ $query_kategori = mysqli_query($koneksi, $sql_kategori);
         </div>
         <!-- KONTEN -->
          <main class="col-md-9 col-lg-10 p-4 offset-md-3 offset-lg-2">
+   <?php } ?>
+       <?php if ($_SESSION['role'] == 'guru' ) { ?>
+<div class="container-fluid">
+    <div class="row">
+        <!-- SIDEBAR -->
+       <div class="col-md-3 col-lg-2 bg-dark text-white p-3 position-fixed top-0 bottom-0 start-0 overflow-y-auto">
+            <h4 class="text-white mb-4">
+                My Website
+            </h4>
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item mb-2">
+                    <a href="dashboard.php" class="nav-link active">
+                        Dashboard
+                    </a>
+                </li>
 
+                <li class="nav-item mb-2">
+                    <a href="catatan_pelanggaran.php" class="nav-link active">
+                        catatan
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="tindakan.php" class="nav-link active">
+                        tindakan
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="laporan.php" class="nav-link active">
+                        laporan
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="riwayat.php" class="nav-link active">
+                        riwayat
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a href="rekap_point.php" class="nav-link active">
+                        rekap point
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <!-- KONTEN -->
+         <main class="col-md-9 col-lg-10 p-4 offset-md-3 offset-lg-2">
+                <h1>selamat datang, <?php echo $_SESSION['name'];?></h1>
+    <p>anda login sebagai: <?php echo $_SESSION['role']?></p>
+<?php } ?>
     <h1>Kelola Pelanggaran</h1>
 
     <?php if (isset($_SESSION['pesan'])) { ?>
@@ -456,7 +505,7 @@ $query_kategori = mysqli_query($koneksi, $sql_kategori);
 
         <?php } ?>
 
-        </tbody>
+        </body>
 
     </table>
 

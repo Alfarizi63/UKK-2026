@@ -114,7 +114,7 @@ if (!$query) {
                 </li>
                 <hr class="text-secondary">
                 <li class="nav-item">
-                    <a href="login.php" class="nav-link text-danger">
+                    <a href="logout.php" class="nav-link text-danger">
                         Logout
                     </a>
                 </li>

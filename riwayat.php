@@ -27,17 +27,36 @@ if (!$query) {
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <style>
+    .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 196px;
+        height: 100vh;
+        overflow-y: auto;
+        background-color: #343a40;
+        z-index: 1000;
+    }
+
+    .konten {
+        margin-left: 196px;
+        min-height: 100vh;
+        padding: 24px;
+    }
+</style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Riwayat Pelanggaran Siswa</title>
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
 </head>
-
+<?php if ($_SESSION['role'] == 'admin'  )  {?>
 <div class="container-fluid">
     <div class="row">
         <!-- SIDEBAR -->
-       <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3 position-fixed top-0 start-0 overflow-auto">
+       
             <h4 class="text-white mb-4">
                 My Website
             </h4>
@@ -124,7 +143,64 @@ if (!$query) {
         </div>
         <!-- KONTEN -->
          <main class="col-md-9 col-lg-10 p-4 offset-md-3 offset-lg-2">
+               <?php } ?>
+    <!-- SIDEBAR GURU -->
+<div class="col-md-3 col-lg-2 bg-dark text-white p-3 position-fixed top-0 bottom-0 start-0 overflow-auto">
 
+    <h4 class="text-white mb-4">
+        My Website
+    </h4>
+
+    <ul class="nav nav-pills flex-column">
+        <li class="nav-item mb-2">
+            <a href="dashboard.php" class="nav-link text-white">
+                Dashboard
+            </a>
+        </li>
+
+        <li class="nav-item mb-2">
+            <a href="catatan_pelanggaran.php" class="nav-link text-white">
+                Catatan
+            </a>
+        </li>
+
+        <li class="nav-item mb-2">
+            <a href="tindakan.php" class="nav-link text-white">
+                Tindakan
+            </a>
+        </li>
+
+        <li class="nav-item mb-2">
+            <a href="laporan.php" class="nav-link text-white">
+                Laporan
+            </a>
+        </li>
+
+        <li class="nav-item mb-2">
+            <a href="riwayat.php" class="nav-link active">
+                Riwayat
+            </a>
+        </li>
+
+        <li class="nav-item mb-2">
+            <a href="rekap_point.php" class="nav-link text-white">
+                Rekap Poin
+            </a>
+        </li>
+
+        <hr class="text-secondary">
+
+        <li class="nav-item">
+            <a href="login.php" class="nav-link text-danger">
+                Logout
+            </a>
+        </li>
+    </ul>
+
+</div>
+
+<!-- KONTEN -->
+<main class="col-md-9 col-lg-10 p-4 offset-md-3 offset-lg-2">
 <body class="bg-light">
 
 
