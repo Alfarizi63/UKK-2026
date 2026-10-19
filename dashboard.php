@@ -173,55 +173,224 @@ include 'includes/cek_session.php';
             
          <?php } ?>
 
-    <?php if ($_SESSION['role'] == 'guru' ) { ?>
-<div class="container-fluid">
-    <div class="row">
-        <!-- SIDEBAR -->
-       <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3 position-fixed top-0 start-0 overflow-auto">
-            <h4 class="text-white mb-4">
-                My Website
-            </h4>
-            <ul class="nav nav-pills flex-column">
-                <li class="nav-item mb-2">
-                    <a href="dashboard.php" class="nav-link active">
-                        Dashboard
-                    </a>
-                </li>
+         <?php if ($_SESSION['role'] == 'guru' ) { ?>
 
-                <li class="nav-item mb-2">
-                    <a href="catatan_pelanggaran.php" class="nav-link active">
-                        catatan
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="tindakan.php" class="nav-link active">
-                        tindakan
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="laporan.php" class="nav-link active">
-                        laporan
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="riwayat.php" class="nav-link active">
-                        riwayat
-                    </a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a href="rekap_point.php" class="nav-link active">
-                        rekap point
-                    </a>
-                </li>
-            </ul>
-        </div>
-        <!-- KONTEN -->
-         <main class="col-md-9 col-lg-10 p-4 offset-md-3 offset-lg-2">
-                <h1>selamat datang, <?php echo $_SESSION['name'];?></h1>
-    <p>anda login sebagai: <?php echo $_SESSION['role']?></p>
-<?php } ?>
+<style>
+    body {
+        background: #f8f9fa;
+    }
+
+    .sidebar-guru {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 273px;
+        background: #343a40;
+        padding: 14px;
+        overflow-y: auto;
+        z-index: 1000;
+    }
+
+    .sidebar-guru h4 {
+        color: white;
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+
+    .sidebar-guru a {
+        color: white;
+        display: block;
+        padding: 10px 14px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+    .sidebar-guru a:hover {
+        background: #495057;
+    }
+
+    .sidebar-guru a.active {
+        background: #007bff;
+        color: white;
+    }
+
+    .konten-guru {
+        margin-left: 273px;
+        padding: 25px;
+        min-width: 0;
+    }
+
+    .kartu-menu-guru {
+        background: white;
+        border-radius: 8px;
+        padding: 22px;
+        height: 100%;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e9ecef;
+    }
+
+    .kartu-menu-guru h5 {
+        font-weight: bold;
+        margin-bottom: 12px;
+    }
+
+    .kartu-menu-guru a {
+        text-decoration: none;
+    }
+
+    .tombol-menu-guru {
+        display: inline-block;
+        background: #007bff;
+        color: white !important;
+        padding: 7px 13px;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .tombol-menu-guru:hover {
+        background: #0069d9;
+    }
+
+    @media (max-width: 767px) {
+        .sidebar-guru {
+            position: relative;
+            width: 100%;
+            height: auto;
+        }
+
+        .konten-guru {
+            margin-left: 0;
+            padding: 15px;
+        }
+    }
+</style>
+
+<div class="sidebar-guru">
+    <h4>My Website</h4>
+
+    <ul class="nav nav-pills flex-column">
+        <li class="nav-item mb-2">
+            <a href="dashboard.php" class="nav-link active">
+                Dashboard
+            </a>
+        </li>
+
+        <li class="nav-item mb-2">
+            <a href="catatan_pelanggaran.php" class="nav-link">
+                catatan
+            </a>
+        </li>
+
+        <li class="nav-item mb-2">
+            <a href="tindakan.php" class="nav-link">
+                tindakan
+            </a>
+        </li>
+
+        <li class="nav-item mb-2">
+            <a href="laporan.php" class="nav-link">
+                laporan
+            </a>
+        </li>
+
+        <li class="nav-item mb-2">
+            <a href="riwayat.php" class="nav-link">
+                riwayat
+            </a>
+        </li>
+
+        <li class="nav-item mb-2">
+            <a href="rekap_point.php" class="nav-link">
+                rekap point
+            </a>
+        </li>
+        <a href="login.php" class="text-danger">Logout</a>
     </ul>
-    <a href="login.php">logout</a>
+</div>
+
+<main class="konten-guru">
+
+    <div class="bg-white p-4 rounded shadow-sm mb-4">
+        <h1>selamat datang, <?php echo $_SESSION['name'];?></h1>
+        <p class="text-secondary mb-0">
+            anda login sebagai: <?php echo $_SESSION['role']?>
+        </p>
+    </div>
+
+    <h2 class="mb-3">Dashboard</h2>
+
+    <div class="row g-3">
+
+        <div class="col-md-6 col-xl-4 mb-3">
+            <div class="kartu-menu-guru">
+                <h5>catatan</h5>
+                <p class="text-secondary">
+                    Kelola catatan pelanggaran siswa.
+                </p>
+                <a href="catatan_pelanggaran.php" class="tombol-menu-guru">
+                    Buka Menu
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4 mb-3">
+            <div class="kartu-menu-guru">
+                <h5>tindakan</h5>
+                <p class="text-secondary">
+                    Kelola tindakan pelanggaran siswa.
+                </p>
+                <a href="tindakan.php" class="tombol-menu-guru">
+                    Buka Menu
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4 mb-3">
+            <div class="kartu-menu-guru">
+                <h5>laporan</h5>
+                <p class="text-secondary">
+                    Lihat laporan pelanggaran siswa.
+                </p>
+                <a href="laporan.php" class="tombol-menu-guru">
+                    Buka Menu
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4 mb-3">
+            <div class="kartu-menu-guru">
+                <h5>riwayat</h5>
+                <p class="text-secondary">
+                    Lihat riwayat pelanggaran siswa.
+                </p>
+                <a href="riwayat.php" class="tombol-menu-guru">
+                    Buka Menu
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4 mb-3">
+            <div class="kartu-menu-guru">
+                <h5>rekap point</h5>
+                <p class="text-secondary">
+                    Lihat rekap poin pelanggaran siswa.
+                </p>
+                <a href="rekap_point.php" class="tombol-menu-guru">
+                    Buka Menu
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <a href="login.php" class="btn btn-danger mt-3">logout</a>
+
+</main>
+
+<?php } ?>
+
     <table class="table">
       <th>
         <td>:</td>

@@ -1,16 +1,19 @@
-
+```php
 <?php
 include 'includes/cek_session.php';
+include 'config/koneksi.php';
 
-$nama = "Muhammad Alfarizi";
-$kelas = "XII RPL 1";
-$jurusan = "Rekayasa Perangkat Lunak";
-$hobi = "Belajar coding";
-$cita_cita = "Menjadi Programmer";
-$deskripsi = "Saya adalah siswa yang sedang belajar pemrograman dan mengembangkan kemampuan di bidang teknologi.";
+$nama = $_SESSION['name'] ?? 'Nama Pengguna';
+$role = $_SESSION['role'] ?? 'Pengguna';
 
-// Lokasi foto sesuai folder pada screenshot
-$foto = "assets/img/profil.jpg";
+// Ganti dengan data profil kamu
+$kelas = 'XII RPL 1';
+$jurusan = 'Rekayasa Perangkat Lunak';
+$sekolah = 'SMK Muhammadiyah Tasikmalaya';
+$email = $_SESSION['email'] ?? '-';
+$deskripsi = 'Saya adalah siswa yang sedang belajar mengembangkan website menggunakan PHP, MySQL, HTML, CSS, dan JavaScript.';
+
+$foto = 'assets/img/profil.jpg';
 ?>
 
 <!DOCTYPE html>
@@ -18,7 +21,10 @@ $foto = "assets/img/profil.jpg";
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tentang Saya</title>
+    <title>About Me</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
     <style>
         * {
@@ -26,82 +32,158 @@ $foto = "assets/img/profil.jpg";
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background: #f1f5f9;
             margin: 0;
-            padding: 20px;
-            color: #1e293b;
+            background: #f4f6f9;
+            font-family: Arial, sans-serif;
+            color: #343a40;
         }
 
-        .profil {
-            max-width: 550px;
-            margin: 40px auto;
-            padding: 30px;
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 273px;
+            padding: 20px 14px;
+            background: #343a40;
+            color: white;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar h4 {
+            font-size: 21px;
+            font-weight: bold;
+            margin-bottom: 28px;
+        }
+
+        .sidebar a {
+            display: block;
+            padding: 11px 13px;
+            margin-bottom: 5px;
+            border-radius: 7px;
+            text-decoration: none;
+            color: #d7dce1;
+            font-size: 14px;
+        }
+
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: #0d6efd;
+            color: white;
+        }
+
+        .sidebar a i {
+            margin-right: 9px;
+        }
+
+        .konten {
+            margin-left: 273px;
+            padding: 28px;
+            width: calc(100% - 273px);
+        }
+
+        .judul {
+            font-size: 27px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .subjudul {
+            color: #7b8490;
+            margin-bottom: 25px;
+        }
+
+        .kartu {
             background: white;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 22px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
         }
 
         .foto-profil {
-            width: 150px;
-            height: 150px;
-            object-fit: cover;
+            width: 145px;
+            height: 145px;
             border-radius: 50%;
-            border: 4px solid #2563eb;
-            display: block;
-            margin: 0 auto 20px;
+            object-fit: cover;
+            border: 5px solid #edf2f7;
+            background: #e9ecef;
         }
 
-        h1 {
-            color: #2563eb;
+        .nama-profil {
+            font-size: 25px;
+            font-weight: bold;
+            margin-top: 15px;
         }
 
-        .deskripsi {
-            color: #64748b;
-            line-height: 1.7;
+        .badge-role {
+            display: inline-block;
+            background: #e7f1ff;
+            color: #0d6efd;
+            padding: 7px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-top: 5px;
         }
 
-        .informasi {
-            background: #f8fafc;
-            text-align: left;
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin: 25px 0;
+        .judul-kartu {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 18px;
         }
 
-        .informasi p {
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e2e8f0;
-            line-height: 1.6;
+        .tabel-biodata td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #edf0f3;
+            vertical-align: top;
         }
 
-        .informasi p:last-child {
+        .tabel-biodata td:first-child {
+            width: 145px;
+            color: #6c757d;
+        }
+
+        .tabel-biodata tr:last-child td {
             border-bottom: none;
         }
 
-        .tombol {
-            display: inline-block;
-            padding: 12px 20px;
-            background: #2563eb;
-            color: white;
-            text-decoration: none;
-            border-radius: 7px;
+        .item-info {
+            background: #f8f9fa;
+            border: 1px solid #edf0f3;
+            padding: 15px;
+            border-radius: 9px;
+            height: 100%;
         }
 
-        .tombol:hover {
-            background: #1d4ed8;
+        .item-info i {
+            font-size: 25px;
+            color: #0d6efd;
+            margin-bottom: 10px;
+            display: block;
         }
 
-        @media (max-width: 600px) {
-            .profil {
-                padding: 20px;
-                margin: 10px auto;
+        .item-info h6 {
+            font-weight: bold;
+        }
+
+        .item-info p {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
             }
 
-            .foto-profil {
-                width: 120px;
-                height: 120px;
+            .konten {
+                margin-left: 0;
+                width: 100%;
+                padding: 16px;
             }
         }
     </style>
@@ -109,44 +191,229 @@ $foto = "assets/img/profil.jpg";
 
 <body>
 
-<div class="profil">
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <h4><i class="bi bi-shield-check"></i> Sistem Pelanggaran</h4>
 
-    <?php if (file_exists(__DIR__ . '/' . $foto)) { ?>
- <img src="img/alfarizi.jpg" alt="">
-    <?php } else { ?>
-        <div style="padding: 40px 0; color: #64748b;">
-            Foto belum ditemukan.
+    <a href="dashboard.php">
+        <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+
+    <?php if (strtolower($role) === 'admin'): ?>
+
+        <a href="data_siswa.php">
+            <i class="bi bi-people"></i> Data Siswa
+        </a>
+
+        <a href="data_guru.php">
+            <i class="bi bi-person-badge"></i> Data Guru
+        </a>
+
+        <a href="kelola_kelas.php">
+            <i class="bi bi-building"></i> Kelas
+        </a>
+
+        <a href="kelola_kategori_pelanggaran.php">
+            <i class="bi bi-list-check"></i> Kelola Kategori Pelanggaran
+        </a>
+
+        <a href="kelola_tahun_ajaran.php">
+            <i class="bi bi-calendar"></i> Kelola Tahun Ajaran
+        </a>
+
+        <a href="laporan.php">
+            <i class="bi bi-file-earmark-text"></i> Laporan
+        </a>
+
+        <a href="kelola_wali_kelas.php">
+            <i class="bi bi-person-workspace"></i> Kelola Wali Kelas
+        </a>
+
+        <a href="kelola_penempatan_siswa.php">
+            <i class="bi bi-person-lines-fill"></i> Kelola Penempatan Siswa
+        </a>
+
+        <a href="rekap_point.php">
+            <i class="bi bi-bar-chart"></i> Rekap Poin
+        </a>
+
+    <?php else: ?>
+
+        <a href="catatan.php">
+            <i class="bi bi-journal-text"></i> Catatan
+        </a>
+
+        <a href="tindakan.php">
+            <i class="bi bi-clipboard-check"></i> Tindakan
+        </a>
+
+        <a href="laporan.php">
+            <i class="bi bi-file-earmark-text"></i> Laporan
+        </a>
+
+        <a href="riwayat.php">
+            <i class="bi bi-clock-history"></i> Riwayat
+        </a>
+
+        <a href="rekap_point.php">
+            <i class="bi bi-bar-chart"></i> Rekap Point
+        </a>
+
+    <?php endif; ?>
+
+    <a href="tentang_saya.php" class="active">
+        <i class="bi bi-person-circle"></i> About Me
+    </a>
+
+    <a href="logout.php">
+        <i class="bi bi-box-arrow-right"></i> Logout
+    </a>
+</div>
+
+<!-- KONTEN -->
+<div class="konten">
+
+    <h2 class="judul">About Me</h2>
+    <p class="subjudul">Informasi profil dan data diri pengembang.</p>
+
+    <!-- PROFIL UTAMA -->
+    <div class="kartu text-center">
+        <img src="alfarizi.jpg" alt="">
+        <div class="nama-profil">
+            <?= htmlspecialchars($nama) ?>
         </div>
-    <?php } ?>
 
-    <h1>Tentang Saya</h1>
+        <span class="badge-role">
+            <i class="bi bi-code-slash"></i>
+            Pengembang Sistem
+        </span>
 
-    <p class="deskripsi">
-        <?php echo htmlspecialchars($deskripsi); ?>
-    </p>
-
-    <div class="informasi">
-        <p><strong>Nama:</strong>
-            <?php echo htmlspecialchars($nama); ?></p>
-
-        <p><strong>Kelas:</strong>
-            <?php echo htmlspecialchars($kelas); ?></p>
-
-        <p><strong>Jurusan:</strong>
-            <?php echo htmlspecialchars($jurusan); ?></p>
-
-        <p><strong>Hobi:</strong>
-            <?php echo htmlspecialchars($hobi); ?></p>
-
-        <p><strong>Cita-cita:</strong>
-            <?php echo htmlspecialchars($cita_cita); ?></p>
+        <p class="text-secondary mt-3 mb-0">
+            <?= htmlspecialchars($deskripsi) ?>
+        </p>
     </div>
 
-    <a href="dashboard.php" class="tombol">
-        Kembali ke Dashboard
-    </a>
+    <!-- BIODATA -->
+    <div class="kartu">
+        <h5 class="judul-kartu">
+            <i class="bi bi-person-vcard text-primary"></i>
+            Biodata Saya
+        </h5>
+
+        <div class="table-responsive">
+            <table class="table tabel-biodata mb-0">
+                <tr>
+                    <td>Nama</td>
+                    <td>alfarizi</td>
+                </tr>
+
+                <tr>
+                    <td>Kelas</td>
+                    <td><?= htmlspecialchars($kelas) ?></td>
+                </tr>
+
+                <tr>
+                    <td>Jurusan</td>
+                    <td><?= htmlspecialchars($jurusan) ?></td>
+                </tr>
+
+                <tr>
+                    <td>Sekolah</td>
+                    <td><?= htmlspecialchars($sekolah) ?></td>
+                </tr>
+
+                <tr>
+                    <td>Email</td>
+                    <td><?= htmlspecialchars($email) ?></td>
+                </tr>
+
+                <tr>
+                    <td>Deskripsi</td>
+                    <td><?= htmlspecialchars($deskripsi) ?></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- KEAHLIAN -->
+    <div class="kartu">
+        <h5 class="judul-kartu">
+            <i class="bi bi-laptop text-primary"></i>
+            Keahlian
+        </h5>
+
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-3">
+                <div class="item-info">
+                    <i class="bi bi-filetype-html"></i>
+                    <h6>HTML & CSS</h6>
+                    <p>Membuat struktur dan tampilan website.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="item-info">
+                    <i class="bi bi-filetype-php"></i>
+                    <h6>PHP</h6>
+                    <p>Membuat logika dan proses website.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="item-info">
+                    <i class="bi bi-database"></i>
+                    <h6>MySQL</h6>
+                    <p>Mengelola data menggunakan database.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="item-info">
+                    <i class="bi bi-filetype-js"></i>
+                    <h6>JavaScript</h6>
+                    <p>Membuat halaman website lebih interaktif.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MINAT DAN TUJUAN -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="kartu h-100">
+                <h5 class="judul-kartu">
+                    <i class="bi bi-heart text-danger"></i>
+                    Minat Saya
+                </h5>
+
+                <p class="text-secondary">
+                    Saya tertarik mempelajari pemrograman, desain website,
+                    teknologi, dan pengembangan aplikasi.
+                </p>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="kartu h-100">
+                <h5 class="judul-kartu">
+                    <i class="bi bi-bullseye text-primary"></i>
+                    Tujuan Saya
+                </h5>
+
+                <p class="text-secondary">
+                    Terus meningkatkan kemampuan pemrograman dan membuat
+                    aplikasi yang bermanfaat serta mudah digunakan.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-center text-secondary small mt-3">
+        © <?= date('Y') ?> Sistem Pelanggaran Siswa
+    </p>
 
 </div>
 
 </body>
 </html>
+```
