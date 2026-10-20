@@ -233,17 +233,24 @@ if (!$query) {
                                         </td>
 
                                         <td class="text-nowrap">
-                                            <a href="edit_kategori_pelanggaran.php?id=<?= (int)$data['id'] ?>"
-                                               class="btn btn-primary btn-sm">
-                                                Edit
-                                            </a>
+                                        <a href="edit_kategori_pelanggaran.php?id=<?= (int)$data['id'] ?>"
+   class="btn btn-primary btn-sm">
+    Edit
+</a>
 
-                                            <a href="hapus.php?id=<?= (int)$data['id'] ?>"
-                                               class="btn btn-danger btn-sm"
-                                               onclick="return confirm('Yakin ingin menghapus kategori ini?')">
-                                                Hapus
-                                            </a>
-                                        </td>
+    <form action="hapus_kategori_pelanggaran.php"
+          method="POST"
+          style="display:inline"
+          onsubmit="return confirm('Yakin ingin menghapus kategori ini?')">
+
+        <input type="hidden" name="id"
+               value="<?= (int)$data['id'] ?>">
+
+        <button type="submit" class="btn btn-danger btn-sm">
+            Hapus
+        </button>
+    </form>
+</td>
                                     </tr>
                                 <?php } ?>
                             <?php } else { ?>

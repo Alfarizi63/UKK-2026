@@ -446,19 +446,18 @@ if (!$query_user) {
                                     <td>
                                         <?= htmlspecialchars($guru['user_id'] ?? '-'); ?>
                                     </td>
-
                                     <td>
-                                        <a href="edit_guru.php?id=<?= (int) $guru['id']; ?>"
-                                           class="btn btn-primary btn-sm">
-                                            Edit
-                                        </a>
+    <a href="edit_guru.php?id=<?= (int) $guru['id']; ?>"
+       class="btn btn-primary btn-sm">Edit</a>
 
-                                        <a href="proses_guru.php?aksi=hapus&id=<?= (int) $guru['id']; ?>"
-                                           class="btn btn-danger btn-sm"
-                                           onclick="return confirm('Yakin ingin menghapus data guru ini?');">
-                                            hapus
-                                        </a>
-                                    </td>
+    <form action="proses_guru.php" method="POST"
+          style="display:inline"
+          onsubmit="return confirm('Yakin ingin menghapus data guru ini?');">
+        <input type="hidden" name="aksi" value="hapus">
+        <input type="hidden" name="id" value="<?= (int) $guru['id']; ?>">
+        <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+    </form>
+</td>
                                 </tr>
                             <?php } ?>
 
