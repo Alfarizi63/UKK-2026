@@ -233,7 +233,7 @@ if (!$query) {
                                         </td>
 
                                         <td class="text-nowrap">
-                                        <a href="edit_kategori_pelanggaran.php?id=<?= (int)$data['id'] ?>"
+<a href="edit_kategori_pelanggaran.php?id=<?= (int)$data['id'] ?>"
    class="btn btn-primary btn-sm">
     Edit
 </a>

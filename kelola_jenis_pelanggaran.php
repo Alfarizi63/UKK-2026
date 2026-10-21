@@ -472,7 +472,7 @@ $role = $_SESSION['role'] ?? '';
 
                                         <td>
                                             <a
-                                                href="edit_pelanggaran.php?id=<?= (int) $row['id'] ?>"
+                                               href="edit_jenis_pelanggaran.php?id=<?= (int) $row['id'] ?>"
                                                 class="btn btn-edit"
                                             >Edit</a>
 
