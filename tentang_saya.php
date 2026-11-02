@@ -1,19 +1,22 @@
-```php
+
 <?php
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
+// DATA SESSION
 $nama = $_SESSION['name'] ?? 'Nama Pengguna';
-$role = $_SESSION['role'] ?? 'Pengguna';
+$role = strtolower($_SESSION['role'] ?? '');
+$email = $_SESSION['email'] ?? '-';
 
-// Ganti dengan data profil kamu
+// DATA PROFIL
 $kelas = 'XII RPL 1';
 $jurusan = 'Rekayasa Perangkat Lunak';
-$sekolah = 'SMK Muhammadiyah Tasikmalaya';
-$email = $_SESSION['email'] ?? '-';
+$sekolah = 'SMK Muhammadiyah Kota Tasikmalaya';
+
 $deskripsi = 'Saya adalah siswa yang sedang belajar mengembangkan website menggunakan PHP, MySQL, HTML, CSS, dan JavaScript.';
 
-$foto = 'assets/img/profil.jpg';
+$foto = 'alfarizi.jpg';
+
 ?>
 
 <!DOCTYPE html>
@@ -21,10 +24,16 @@ $foto = 'assets/img/profil.jpg';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>About Me</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- BOOTSTRAP -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+
+    <!-- BOOTSTRAP ICONS -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
     <style>
         * {
@@ -33,73 +42,82 @@ $foto = 'assets/img/profil.jpg';
 
         body {
             margin: 0;
-            background: #f4f6f9;
+            background: #f8f9fa;
             font-family: Arial, sans-serif;
             color: #343a40;
         }
 
+        /* SIDEBAR */
         .sidebar {
             position: fixed;
             top: 0;
             left: 0;
             bottom: 0;
             width: 273px;
-            padding: 20px 14px;
-            background: #343a40;
+            padding: 15px;
+            background: #212529;
             color: white;
             overflow-y: auto;
-            z-index: 1000;
+            z-index: 1030;
         }
 
         .sidebar h4 {
             font-size: 21px;
             font-weight: bold;
-            margin-bottom: 28px;
+            margin-bottom: 25px;
         }
 
-        .sidebar a {
+        .sidebar .nav-link {
             display: block;
-            padding: 11px 13px;
+            padding: 10px 14px;
             margin-bottom: 5px;
-            border-radius: 7px;
-            text-decoration: none;
-            color: #d7dce1;
+            border-radius: 5px;
+            color: white;
             font-size: 14px;
+            text-decoration: none;
         }
 
-        .sidebar a:hover,
-        .sidebar a.active {
-            background: #0d6efd;
+        .sidebar .nav-link:hover {
+            background: #343a40;
             color: white;
         }
 
-        .sidebar a i {
-            margin-right: 9px;
+        .sidebar .nav-link.active {
+            background: #007bff;
+            color: white;
         }
 
+        .sidebar .nav-link i {
+            margin-right: 8px;
+        }
+
+        /* KONTEN */
         .konten {
             margin-left: 273px;
-            padding: 28px;
+            padding: 25px 28px;
+            min-height: 100vh;
             width: calc(100% - 273px);
         }
 
         .judul {
-            font-size: 27px;
-            font-weight: 700;
+            font-size: 30px;
+            font-weight: bold;
             margin-bottom: 5px;
         }
 
         .subjudul {
-            color: #7b8490;
+            color: #6c757d;
             margin-bottom: 25px;
         }
 
+        /* KARTU */
         .kartu {
             background: white;
-            border-radius: 12px;
+            border-radius: 5px;
             padding: 24px;
             margin-bottom: 22px;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #dee2e6;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
         }
 
         .foto-profil {
@@ -120,7 +138,7 @@ $foto = 'assets/img/profil.jpg';
         .badge-role {
             display: inline-block;
             background: #e7f1ff;
-            color: #0d6efd;
+            color: #007bff;
             padding: 7px 15px;
             border-radius: 20px;
             font-size: 13px;
@@ -128,7 +146,7 @@ $foto = 'assets/img/profil.jpg';
         }
 
         .judul-kartu {
-            font-size: 18px;
+            font-size: 19px;
             font-weight: bold;
             margin-bottom: 18px;
         }
@@ -152,13 +170,13 @@ $foto = 'assets/img/profil.jpg';
             background: #f8f9fa;
             border: 1px solid #edf0f3;
             padding: 15px;
-            border-radius: 9px;
+            border-radius: 5px;
             height: 100%;
         }
 
         .item-info i {
             font-size: 25px;
-            color: #0d6efd;
+            color: #007bff;
             margin-bottom: 10px;
             display: block;
         }
@@ -173,17 +191,19 @@ $foto = 'assets/img/profil.jpg';
             margin-bottom: 0;
         }
 
-        @media (max-width: 768px) {
+        /* RESPONSIVE */
+        @media (max-width: 767px) {
             .sidebar {
                 position: relative;
                 width: 100%;
                 height: auto;
+                min-height: auto;
             }
 
             .konten {
                 margin-left: 0;
                 width: 100%;
-                padding: 16px;
+                padding: 18px;
             }
         }
     </style>
@@ -191,229 +211,317 @@ $foto = 'assets/img/profil.jpg';
 
 <body>
 
-<!-- SIDEBAR -->
-<div class="sidebar">
-    <h4><i class="bi bi-shield-check"></i> Sistem Pelanggaran</h4>
+<div class="container-fluid">
+    <div class="row">
 
-    <a href="dashboard.php">
-        <i class="bi bi-speedometer2"></i> Dashboard
-    </a>
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
 
-    <?php if (strtolower($role) === 'admin'): ?>
+            <h4>My Website</h4>
 
-        <a href="data_siswa.php">
-            <i class="bi bi-people"></i> Data Siswa
-        </a>
+            <ul class="nav nav-pills flex-column">
 
-        <a href="data_guru.php">
-            <i class="bi bi-person-badge"></i> Data Guru
-        </a>
+                <li class="nav-item mb-2">
+                    <a href="dashboard.php" class="nav-link">
+                        Dashboard
+                    </a>
+                </li>
 
-        <a href="kelola_kelas.php">
-            <i class="bi bi-building"></i> Kelas
-        </a>
+                <?php if ($role === 'admin'): ?>
 
-        <a href="kelola_kategori_pelanggaran.php">
-            <i class="bi bi-list-check"></i> Kelola Kategori Pelanggaran
-        </a>
+                    <li class="nav-item mb-2">
+                        <a href="kelola_siswa.php" class="nav-link">
+                            Data Siswa
+                        </a>
+                    </li>
 
-        <a href="kelola_tahun_ajaran.php">
-            <i class="bi bi-calendar"></i> Kelola Tahun Ajaran
-        </a>
+                    <li class="nav-item mb-2">
+                        <a href="kelola_guru.php" class="nav-link">
+                            Data Guru
+                        </a>
+                    </li>
 
-        <a href="laporan.php">
-            <i class="bi bi-file-earmark-text"></i> Laporan
-        </a>
+                    <li class="nav-item mb-2">
+                        <a href="kelola_kelas.php" class="nav-link">
+                            Kelas
+                        </a>
+                    </li>
 
-        <a href="kelola_wali_kelas.php">
-            <i class="bi bi-person-workspace"></i> Kelola Wali Kelas
-        </a>
+                    <li class="nav-item mb-2">
+                        <a href="kelola_kategori_pelanggaran.php" class="nav-link">
+                            Kelola Kategori Pelanggaran
+                        </a>
+                    </li>
 
-        <a href="kelola_penempatan_siswa.php">
-            <i class="bi bi-person-lines-fill"></i> Kelola Penempatan Siswa
-        </a>
+                    <li class="nav-item mb-2">
+                        <a href="kelola_tahun_ajaran.php" class="nav-link">
+                            Kelola Tahun Ajaran
+                        </a>
+                    </li>
 
-        <a href="rekap_point.php">
-            <i class="bi bi-bar-chart"></i> Rekap Poin
-        </a>
+                    <li class="nav-item mb-2">
+                        <a href="laporan.php" class="nav-link">
+                            Laporan
+                        </a>
+                    </li>
 
-    <?php else: ?>
+                    <li class="nav-item mb-2">
+                        <a href="kelola_wali_kelas.php" class="nav-link">
+                            Kelola Wali Kelas
+                        </a>
+                    </li>
 
-        <a href="catatan.php">
-            <i class="bi bi-journal-text"></i> Catatan
-        </a>
+                    <li class="nav-item mb-2">
+                        <a href="kelola_penempatan_siswa.php" class="nav-link">
+                            Kelola Penempatan Siswa
+                        </a>
+                    </li>
 
-        <a href="tindakan.php">
-            <i class="bi bi-clipboard-check"></i> Tindakan
-        </a>
+                    <li class="nav-item mb-2">
+                        <a href="rekap_point.php" class="nav-link">
+                            Rekap Poin
+                        </a>
+                    </li>
 
-        <a href="laporan.php">
-            <i class="bi bi-file-earmark-text"></i> Laporan
-        </a>
+                    <li class="nav-item mb-2">
+                        <a href="riwayat.php" class="nav-link">
+                            Riwayat
+                        </a>
+                    </li>
 
-        <a href="riwayat.php">
-            <i class="bi bi-clock-history"></i> Riwayat
-        </a>
+                    <li class="nav-item mb-2">
+                        <a href="kelola_jenis_pelanggaran.php" class="nav-link">
+                            Kelola Jenis Pelanggaran
+                        </a>
+                    </li>
 
-        <a href="rekap_point.php">
-            <i class="bi bi-bar-chart"></i> Rekap Point
-        </a>
+                    <li class="nav-item mb-2">
+                        <a href="export_pelanggaran.php" class="nav-link">
+                            Export Pelanggaran
+                        </a>
+                    </li>
 
-    <?php endif; ?>
+                <?php elseif ($role === 'guru'): ?>
 
-    <a href="tentang_saya.php" class="active">
-        <i class="bi bi-person-circle"></i> About Me
-    </a>
+                    <li class="nav-item mb-2">
+                        <a href="catatan.php" class="nav-link">
+                            Catatan
+                        </a>
+                    </li>
 
-    <a href="logout.php">
-        <i class="bi bi-box-arrow-right"></i> Logout
-    </a>
-</div>
+                    <li class="nav-item mb-2">
+                        <a href="tindakan.php" class="nav-link">
+                            Tindakan
+                        </a>
+                    </li>
 
-<!-- KONTEN -->
-<div class="konten">
+                    <li class="nav-item mb-2">
+                        <a href="laporan.php" class="nav-link">
+                            Laporan
+                        </a>
+                    </li>
 
-    <h2 class="judul">About Me</h2>
-    <p class="subjudul">Informasi profil dan data diri pengembang.</p>
+                    <li class="nav-item mb-2">
+                        <a href="riwayat.php" class="nav-link">
+                            Riwayat
+                        </a>
+                    </li>
 
-    <!-- PROFIL UTAMA -->
-    <div class="kartu text-center">
-        <img src="alfarizi.jpg" alt="">
-        <div class="nama-profil">
-            <?= htmlspecialchars($nama) ?>
-        </div>
+                    <li class="nav-item mb-2">
+                        <a href="rekap_point.php" class="nav-link">
+                            Rekap Point
+                        </a>
+                    </li>
 
-        <span class="badge-role">
-            <i class="bi bi-code-slash"></i>
-            Pengembang Sistem
-        </span>
+                <?php endif; ?>
 
-        <p class="text-secondary mt-3 mb-0">
-            <?= htmlspecialchars($deskripsi) ?>
-        </p>
-    </div>
+                <li class="nav-item mb-2">
+                    <a href="tentang_saya.php" class="nav-link active">
+                        About Me
+                    </a>
+                </li>
 
-    <!-- BIODATA -->
-    <div class="kartu">
-        <h5 class="judul-kartu">
-            <i class="bi bi-person-vcard text-primary"></i>
-            Biodata Saya
-        </h5>
+                <hr class="bg-secondary">
 
-        <div class="table-responsive">
-            <table class="table tabel-biodata mb-0">
-                <tr>
-                    <td>Nama</td>
-                    <td>alfarizi</td>
-                </tr>
+                <li class="nav-item">
+                    <a href="logout.php" class="nav-link text-danger">
+                        Logout
+                    </a>
+                </li>
 
-                <tr>
-                    <td>Kelas</td>
-                    <td><?= htmlspecialchars($kelas) ?></td>
-                </tr>
+            </ul>
 
-                <tr>
-                    <td>Jurusan</td>
-                    <td><?= htmlspecialchars($jurusan) ?></td>
-                </tr>
+        </aside>
 
-                <tr>
-                    <td>Sekolah</td>
-                    <td><?= htmlspecialchars($sekolah) ?></td>
-                </tr>
+        <!-- KONTEN UTAMA -->
+        <main class="konten">
 
-                <tr>
-                    <td>Email</td>
-                    <td><?= htmlspecialchars($email) ?></td>
-                </tr>
+            <h2 class="judul">About Me</h2>
 
-                <tr>
-                    <td>Deskripsi</td>
-                    <td><?= htmlspecialchars($deskripsi) ?></td>
-                </tr>
-            </table>
-        </div>
-    </div>
+            <p class="subjudul">
+                Informasi profil dan data diri pengembang.
+            </p>
 
-    <!-- KEAHLIAN -->
-    <div class="kartu">
-        <h5 class="judul-kartu">
-            <i class="bi bi-laptop text-primary"></i>
-            Keahlian
-        </h5>
+            <!-- PROFIL UTAMA -->
+            <div class="kartu text-center">
 
-        <div class="row g-3">
-            <div class="col-md-6 col-lg-3">
-                <div class="item-info">
-                    <i class="bi bi-filetype-html"></i>
-                    <h6>HTML & CSS</h6>
-                    <p>Membuat struktur dan tampilan website.</p>
+                <img src="<?= htmlspecialchars($foto) ?>"
+                     alt="Foto Profil"
+                     class="foto-profil">
+
+                <div class="nama-profil">
+                    <?= htmlspecialchars($nama) ?>
                 </div>
+
+                <span class="badge-role">
+                    <i class="bi bi-code-slash"></i>
+                    Pengembang Sistem
+                </span>
+
+                <p class="text-secondary mt-3 mb-0">
+                    <?= htmlspecialchars($deskripsi) ?>
+                </p>
+
             </div>
 
-            <div class="col-md-6 col-lg-3">
-                <div class="item-info">
-                    <i class="bi bi-filetype-php"></i>
-                    <h6>PHP</h6>
-                    <p>Membuat logika dan proses website.</p>
-                </div>
-            </div>
+            <!-- BIODATA -->
+            <div class="kartu">
 
-            <div class="col-md-6 col-lg-3">
-                <div class="item-info">
-                    <i class="bi bi-database"></i>
-                    <h6>MySQL</h6>
-                    <p>Mengelola data menggunakan database.</p>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-lg-3">
-                <div class="item-info">
-                    <i class="bi bi-filetype-js"></i>
-                    <h6>JavaScript</h6>
-                    <p>Membuat halaman website lebih interaktif.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MINAT DAN TUJUAN -->
-    <div class="row g-3">
-        <div class="col-md-6">
-            <div class="kartu h-100">
                 <h5 class="judul-kartu">
-                    <i class="bi bi-heart text-danger"></i>
-                    Minat Saya
+                    <i class="bi bi-person-vcard text-primary"></i>
+                    Biodata Saya
                 </h5>
 
-                <p class="text-secondary">
-                    Saya tertarik mempelajari pemrograman, desain website,
-                    teknologi, dan pengembangan aplikasi.
-                </p>
-            </div>
-        </div>
+                <div class="table-responsive">
 
-        <div class="col-md-6">
-            <div class="kartu h-100">
+                    <table class="table tabel-biodata mb-0">
+
+                        <tr>
+                            <td>Nama</td>
+                            <td><?= htmlspecialchars($nama) ?></td>
+                        </tr>
+
+                        <tr>
+                            <td>Kelas</td>
+                            <td><?= htmlspecialchars($kelas) ?></td>
+                        </tr>
+
+                        <tr>
+                            <td>Jurusan</td>
+                            <td><?= htmlspecialchars($jurusan) ?></td>
+                        </tr>
+
+                        <tr>
+                            <td>Sekolah</td>
+                            <td><?= htmlspecialchars($sekolah) ?></td>
+                        </tr>
+
+                        <tr>
+                            <td>Email</td>
+                            <td><?= htmlspecialchars($email) ?></td>
+                        </tr>
+
+                        <tr>
+                            <td>Deskripsi</td>
+                            <td><?= htmlspecialchars($deskripsi) ?></td>
+                        </tr>
+
+                    </table>
+
+                </div>
+            </div>
+
+            <!-- KEAHLIAN -->
+            <div class="kartu">
+
                 <h5 class="judul-kartu">
-                    <i class="bi bi-bullseye text-primary"></i>
-                    Tujuan Saya
+                    <i class="bi bi-laptop text-primary"></i>
+                    Keahlian
                 </h5>
 
-                <p class="text-secondary">
-                    Terus meningkatkan kemampuan pemrograman dan membuat
-                    aplikasi yang bermanfaat serta mudah digunakan.
-                </p>
+                <div class="row">
+
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="item-info">
+                            <i class="bi bi-filetype-html"></i>
+                            <h6>HTML & CSS</h6>
+                            <p>Membuat struktur dan tampilan website.</p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="item-info">
+                            <i class="bi bi-filetype-php"></i>
+                            <h6>PHP</h6>
+                            <p>Membuat logika dan proses website.</p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="item-info">
+                            <i class="bi bi-database"></i>
+                            <h6>MySQL</h6>
+                            <p>Mengelola data menggunakan database.</p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="item-info">
+                            <i class="bi bi-filetype-js"></i>
+                            <h6>JavaScript</h6>
+                            <p>Membuat halaman website lebih interaktif.</p>
+                        </div>
+                    </div>
+
+                </div>
             </div>
-        </div>
+
+            <!-- MINAT DAN TUJUAN -->
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+                    <div class="kartu h-100">
+
+                        <h5 class="judul-kartu">
+                            <i class="bi bi-heart text-danger"></i>
+                            Minat Saya
+                        </h5>
+
+                        <p class="text-secondary">
+                            Saya tertarik mempelajari pemrograman,
+                            desain website, teknologi, dan pengembangan aplikasi.
+                        </p>
+
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <div class="kartu h-100">
+
+                        <h5 class="judul-kartu">
+                            <i class="bi bi-bullseye text-primary"></i>
+                            Tujuan Saya
+                        </h5>
+
+                        <p class="text-secondary">
+                            Terus meningkatkan kemampuan pemrograman
+                            dan membuat aplikasi yang bermanfaat
+                            serta mudah digunakan.
+                        </p>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <p class="text-center text-secondary small mt-3">
+                © <?= date('Y') ?> Sistem Pelanggaran Siswa
+            </p>
+
+        </main>
+
     </div>
-
-    <p class="text-center text-secondary small mt-3">
-        © <?= date('Y') ?> Sistem Pelanggaran Siswa
-    </p>
-
 </div>
 
 </body>
 </html>
-```
