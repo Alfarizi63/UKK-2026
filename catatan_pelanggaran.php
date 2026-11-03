@@ -364,6 +364,37 @@ if (!$query_kategori) {
     </ul>
 </div>
 
+<?php } elseif ($_SESSION['role'] == 'wali_kelas') { ?>
+
+<div class="sidebar">
+    <h4 class="text-white mb-4">My Website</h4>
+
+    <ul class="nav nav-pills flex-column">
+        <li class="nav-item mb-2">
+            <a href="dashboard.php" class="nav-link">Dashboard</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="catatan_pelanggaran.php" class="nav-link active">
+                catatan
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="tindakan.php" class="nav-link">tindakan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="laporan.php" class="nav-link">laporan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="riwayat.php" class="nav-link">riwayat</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="rekap_point.php" class="nav-link">rekap point</a>
+        </li>
+        <a href="logout.php" class="nav-link text-danger">logout</a>
+    </ul>
+</div>
+
+
 <?php } elseif ($_SESSION['role'] == 'guru') { ?>
 
 <div class="sidebar">

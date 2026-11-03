@@ -218,154 +218,137 @@ if (!$query) {
 
 <body>
 
-<?php if ($_SESSION['role'] == 'guru') { ?>
+<!-- SIDEBAR ADMIN -->
+<?php if ($_SESSION['role'] == 'admin') { ?>
 
-<div class="sidebar">
-    <h4 class="text-white mb-4">
-        My Website
-    </h4>
-
-    <ul class="nav nav-pills flex-column">
-        <li class="nav-item mb-2">
-            <a href="dashboard.php" class="nav-link">
-                Dashboard
-            </a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="catatan_pelanggaran.php" class="nav-link">
-                catatan
-            </a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="tindakan.php" class="nav-link">
-                tindakan
-            </a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link">
-                laporan
-            </a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="riwayat.php" class="nav-link">
-                riwayat
-            </a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link active">
-                rekap point
-            </a>
-            <a href="login.php" class="text-danger">Logout</a>
-        </li>
-    </ul>
-</div>
-
-<?php } else { ?>
-
-<div class="sidebar">
-    <h4 class="text-white mb-4">
-        My Website
-    </h4>
+<aside class="col-md-3 col-lg-2 sidebar p-3">
+    <h4 class="text-white mb-4">My Website</h4>
 
     <ul class="nav nav-pills flex-column">
         <li class="nav-item mb-2">
-            <a href="dashboard.php" class="nav-link">
-                Dashboard
-            </a>
+            <a href="dashboard.php" class="nav-link">Dashboard</a>
         </li>
-
         <li class="nav-item mb-2">
-            <a href="kelola_siswa.php" class="nav-link">
-                Data Siswa
-            </a>
+            <a href="kelola_siswa.php" class="nav-link">Data Siswa</a>
         </li>
-
         <li class="nav-item mb-2">
-            <a href="kelola_guru.php" class="nav-link">
-                Data Guru
-            </a>
+            <a href="kelola_guru.php" class="nav-link">Data Guru</a>
         </li>
-
         <li class="nav-item mb-2">
-            <a href="kelola_kelas.php" class="nav-link">
-                Kelas
-            </a>
+            <a href="kelola_kelas.php" class="nav-link">Kelas</a>
         </li>
-
         <li class="nav-item mb-2">
             <a href="kelola_kategori_pelanggaran.php" class="nav-link">
-                kelola kategori pelanggaran
+                Kelola Kategori Pelanggaran
             </a>
         </li>
-
         <li class="nav-item mb-2">
             <a href="kelola_tahun_ajaran.php" class="nav-link">
-                Kelola tahun ajaran
+                Kelola Tahun Ajaran
             </a>
         </li>
-
         <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link">
-                Laporan
-            </a>
+            <a href="laporan.php" class="nav-link active">Laporan</a>
         </li>
-
         <li class="nav-item mb-2">
             <a href="kelola_wali_kelas.php" class="nav-link">
-                kelola wali kelas
+                Kelola Wali Kelas
             </a>
         </li>
-
         <li class="nav-item mb-2">
             <a href="kelola_penempatan_siswa.php" class="nav-link">
-                kelola penempatan siswa
+                Kelola Penempatan Siswa
             </a>
         </li>
-
         <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link active">
-                rekap poin
-            </a>
+            <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
         </li>
-
         <li class="nav-item mb-2">
-            <a href="riwayat.php" class="nav-link">
-                riwayat
-            </a>
+            <a href="riwayat.php" class="nav-link">Riwayat</a>
         </li>
-
         <li class="nav-item mb-2">
             <a href="kelola_jenis_pelanggaran.php" class="nav-link">
-                kelola jenis pelanggaran
+                Kelola Jenis Pelanggaran
             </a>
         </li>
-
         <li class="nav-item mb-2">
             <a href="export_pelanggaran.php" class="nav-link">
-                export pelanggaran
+                Export Pelanggaran
             </a>
         </li>
-
         <li class="nav-item mb-2">
-            <a href="tentang_saya.php" class="nav-link">
-                About Me
-            </a>
+            <a href="tentang_saya.php" class="nav-link">About Me</a>
         </li>
-
-        <hr class="text-secondary">
-
+        <hr class="bg-secondary">
         <li class="nav-item">
-            <a href="login.php" class="nav-link text-danger">
-                Logout
-            </a>
+            <a href="logout.php" class="nav-link text-danger">Logout</a>
         </li>
     </ul>
-</div>
+</aside>
+
+<?php } elseif ($_SESSION['role'] == 'wali_kelas') { ?>
+
+<!-- SIDEBAR WALI KELAS -->
+<aside class="col-md-3 col-lg-2 sidebar p-3">
+    <h4 class="text-white mb-4">My Website</h4>
+
+    <ul class="nav nav-pills flex-column">
+        <li class="nav-item mb-2">
+            <a href="dashboard.php" class="nav-link">Dashboard</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="catatan_pelanggaran.php" class="nav-link">Catatan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="tindakan.php" class="nav-link">Tindakan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="laporan.php" class="nav-link">Laporan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="riwayat.php" class="nav-link">Riwayat</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="rekap_point.php" class="nav-link active">Rekap Poin</a>
+        </li>
+        <hr class="bg-secondary">
+        <li class="nav-item">
+            <a href="logout.php" class="nav-link text-danger">Logout</a>
+        </li>
+    </ul>
+</aside>
+
+<?php } elseif ($_SESSION['role'] == 'guru') { ?>
+
+<!-- SIDEBAR GURU -->
+<aside class="col-md-3 col-lg-2 sidebar p-3">
+    <h4 class="text-white mb-4">My Website</h4>
+
+    <ul class="nav nav-pills flex-column">
+        <li class="nav-item mb-2">
+            <a href="dashboard.php" class="nav-link">Dashboard</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="catatan_pelanggaran.php" class="nav-link">Catatan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="tindakan.php" class="nav-link">Tindakan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="laporan.php" class="nav-link active">Laporan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="riwayat.php" class="nav-link">Riwayat</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
+        </li>
+        <hr class="bg-secondary">
+        <li class="nav-item">
+            <a href="logout.php" class="nav-link text-danger">Logout</a>
+        </li>
+    </ul>
+</aside>
 
 <?php } ?>
 

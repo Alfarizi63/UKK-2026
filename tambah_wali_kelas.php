@@ -1,4 +1,3 @@
-
 <?php
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
@@ -22,15 +21,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tanggal_mulai = $_POST['tanggal_mulai'] ?? '';
     $tanggal_selesai = $_POST['tanggal_selesai'] ?? '';
     $status_aktif = (int) ($_POST['status_aktif'] ?? 1);
+    $password = trim($_POST['password'] ?? '');
 
     if (
         $tahun_ajaran_id <= 0 ||
         $kelas_id <= 0 ||
         $guru_id <= 0 ||
+        $password === '' ||
         $tanggal_mulai === '' ||
         $tanggal_selesai === ''
     ) {
         $error = 'Semua kolom wajib diisi.';
+
+    } elseif (strlen($password) < 6) {
+
+        $error = 'Password minimal 6 karakter.';
 
     } elseif ($tanggal_mulai > $tanggal_selesai) {
 
@@ -116,19 +121,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
             }
 
-            // Buat password sementara secara acak
-           // Membuat password acak 8 karakter
-$karakter = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-
-$password = '';
-
-for ($i = 0; $i < 8; $i++) {
-    $password .= $karakter[random_int(0, strlen($karakter) - 1)];
-}
-
-// Hash password
-$password_hash = password_hash($password, PASSWORD_DEFAULT);
-
+            // Hash password yang ditentukan sendiri oleh Admin
+            $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
             // Buat akun wali kelas
             $role = 'wali_kelas';
@@ -502,7 +496,7 @@ if (!$query_tahun || !$query_kelas || !$query_guru) {
                             </p>
 
                             <p class="mb-1">
-                                <strong>Password sementara:</strong>
+                                <strong>Password:</strong>
                                 <code><?= htmlspecialchars($akun_baru['password']) ?></code>
                             </p>
 
@@ -568,6 +562,33 @@ if (!$query_tahun || !$query_kelas || !$query_guru) {
                         </div>
 
                         <div class="form-group">
+                            <label>Password Akun Wali Kelas</label>
+
+                            <div class="input-group">
+                                <input type="password"
+                                       name="password"
+                                       id="password"
+                                       class="form-control"
+                                       placeholder="Buat password sendiri"
+                                       minlength="6"
+                                       required>
+
+                                <div class="input-group-append">
+                                    <button type="button"
+                                            class="btn btn-outline-secondary"
+                                            id="togglePassword"
+                                            onclick="togglePasswordVisibility()">
+                                        Lihat
+                                    </button>
+                                </div>
+                            </div>
+
+                            <small class="form-text text-muted">
+                                Password ditentukan oleh Admin, minimal 6 karakter.
+                            </small>
+                        </div>
+
+                        <div class="form-group">
                             <label>Tanggal Mulai</label>
 
                             <input type="date"
@@ -626,6 +647,21 @@ if (!$query_tahun || !$query_kelas || !$query_guru) {
 
     </div>
 </div>
+
+<script>
+function togglePasswordVisibility() {
+    var inputPassword = document.getElementById('password');
+    var tombol = document.getElementById('togglePassword');
+
+    if (inputPassword.type === 'password') {
+        inputPassword.type = 'text';
+        tombol.textContent = 'Sembunyikan';
+    } else {
+        inputPassword.type = 'password';
+        tombol.textContent = 'Lihat';
+    }
+}
+</script>
 
 </body>
 </html>

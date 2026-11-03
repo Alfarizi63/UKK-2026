@@ -202,127 +202,140 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
 <div class="container-fluid">
     <div class="row">
 
-        <!-- SIDEBAR ADMIN -->
-        <?php if ($_SESSION['role'] == 'admin') { ?>
+    
+<!-- SIDEBAR ADMIN -->
+<?php if ($_SESSION['role'] == 'admin') { ?>
 
-        <aside class="col-md-3 col-lg-2 sidebar p-3">
-            <h4 class="text-white mb-4">My Website</h4>
+<aside class="col-md-3 col-lg-2 sidebar p-3">
+    <h4 class="text-white mb-4">My Website</h4>
 
-            <ul class="nav nav-pills flex-column">
-                <li class="nav-item mb-2">
-                    <a href="dashboard.php" class="nav-link">Dashboard</a>
-                </li>
+    <ul class="nav nav-pills flex-column">
+        <li class="nav-item mb-2">
+            <a href="dashboard.php" class="nav-link">Dashboard</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="kelola_siswa.php" class="nav-link">Data Siswa</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="kelola_guru.php" class="nav-link">Data Guru</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="kelola_kelas.php" class="nav-link">Kelas</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="kelola_kategori_pelanggaran.php" class="nav-link">
+                Kelola Kategori Pelanggaran
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="kelola_tahun_ajaran.php" class="nav-link">
+                Kelola Tahun Ajaran
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="laporan.php" class="nav-link active">Laporan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="kelola_wali_kelas.php" class="nav-link">
+                Kelola Wali Kelas
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="kelola_penempatan_siswa.php" class="nav-link">
+                Kelola Penempatan Siswa
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="riwayat.php" class="nav-link">Riwayat</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="kelola_jenis_pelanggaran.php" class="nav-link">
+                Kelola Jenis Pelanggaran
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="export_pelanggaran.php" class="nav-link">
+                Export Pelanggaran
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="tentang_saya.php" class="nav-link">About Me</a>
+        </li>
+        <hr class="bg-secondary">
+        <li class="nav-item">
+            <a href="logout.php" class="nav-link text-danger">Logout</a>
+        </li>
+    </ul>
+</aside>
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_siswa.php" class="nav-link">Data Siswa</a>
-                </li>
+<?php } elseif ($_SESSION['role'] == 'wali_kelas') { ?>
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_guru.php" class="nav-link">Data Guru</a>
-                </li>
+<!-- SIDEBAR WALI KELAS -->
+<aside class="col-md-3 col-lg-2 sidebar p-3">
+    <h4 class="text-white mb-4">My Website</h4>
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_kelas.php" class="nav-link">Kelas</a>
-                </li>
+    <ul class="nav nav-pills flex-column">
+        <li class="nav-item mb-2">
+            <a href="dashboard.php" class="nav-link">Dashboard</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="catatan_pelanggaran.php" class="nav-link">Catatan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="tindakan.php" class="nav-link">Tindakan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="laporan.php" class="nav-link active">Laporan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="riwayat.php" class="nav-link">Riwayat</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
+        </li>
+        <hr class="bg-secondary">
+        <li class="nav-item">
+            <a href="logout.php" class="nav-link text-danger">Logout</a>
+        </li>
+    </ul>
+</aside>
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_kategori_pelanggaran.php" class="nav-link">
-                        Kelola Kategori Pelanggaran
-                    </a>
-                </li>
+<?php } elseif ($_SESSION['role'] == 'guru') { ?>
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_tahun_ajaran.php" class="nav-link">
-                        Kelola Tahun Ajaran
-                    </a>
-                </li>
+<!-- SIDEBAR GURU -->
+<aside class="col-md-3 col-lg-2 sidebar p-3">
+    <h4 class="text-white mb-4">My Website</h4>
 
-                <li class="nav-item mb-2">
-                    <a href="laporan.php" class="nav-link active">Laporan</a>
-                </li>
+    <ul class="nav nav-pills flex-column">
+        <li class="nav-item mb-2">
+            <a href="dashboard.php" class="nav-link">Dashboard</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="catatan_pelanggaran.php" class="nav-link">Catatan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="tindakan.php" class="nav-link">Tindakan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="laporan.php" class="nav-link active">Laporan</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="riwayat.php" class="nav-link">Riwayat</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
+        </li>
+        <hr class="bg-secondary">
+        <li class="nav-item">
+            <a href="logout.php" class="nav-link text-danger">Logout</a>
+        </li>
+    </ul>
+</aside>
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_wali_kelas.php" class="nav-link">
-                        Kelola Wali Kelas
-                    </a>
-                </li>
-
-                <li class="nav-item mb-2">
-                    <a href="kelola_penempatan_siswa.php" class="nav-link">
-                        Kelola Penempatan Siswa
-                    </a>
-                </li>
-
-                <li class="nav-item mb-2">
-                    <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
-                </li>
-
-                <li class="nav-item mb-2">
-                    <a href="riwayat.php" class="nav-link">Riwayat</a>
-                </li>
-
-                <li class="nav-item mb-2">
-                    <a href="kelola_jenis_pelanggaran.php" class="nav-link">
-                        Kelola Jenis Pelanggaran
-                    </a>
-                </li>
-
-                <li class="nav-item mb-2">
-                    <a href="export_pelanggaran.php" class="nav-link">
-                        Export Pelanggaran
-                    </a>
-                </li>
-
-                <li class="nav-item mb-2">
-                    <a href="tentang_saya.php" class="nav-link">About Me</a>
-                </li>
-
-                <hr class="bg-secondary">
-
-                <li class="nav-item">
-                    <a href="logout.php" class="nav-link text-danger">Logout</a>
-                </li>
-            </ul>
-        </aside>
-
-        <?php } ?>
-
-        <!-- SIDEBAR GURU -->
-        <?php if ($_SESSION['role'] == 'guru') { ?>
-
-        <aside class="col-md-3 col-lg-2 sidebar p-3">
-            <h4 class="text-white mb-4">My Website</h4>
-
-            <ul class="nav nav-pills flex-column">
-                <li class="nav-item mb-2">
-                    <a href="dashboard.php" class="nav-link">Dashboard</a>
-                </li>
-
-                <li class="nav-item mb-2">
-                    <a href="catatan_pelanggaran.php" class="nav-link">catatan</a>
-                </li>
-
-                <li class="nav-item mb-2">
-                    <a href="tindakan.php" class="nav-link">tindakan</a>
-                </li>
-
-                <li class="nav-item mb-2">
-                    <a href="laporan.php" class="nav-link active">laporan</a>
-                </li>
-
-                <li class="nav-item mb-2">
-                    <a href="riwayat.php" class="nav-link">riwayat</a>
-                </li>
-
-                <li class="nav-item mb-2">
-                    <a href="rekap_point.php" class="nav-link">rekap point</a>
-                </li>
-                <a href="login.php" class="text-danger">Logout</a>
-            </ul>
-        </aside>
-
-        <?php } ?>
-
+<?php } ?>
         <!-- KONTEN -->
         <main class="col-md-9 col-lg-10 p-4">
 

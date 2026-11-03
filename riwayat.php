@@ -1,4 +1,3 @@
-
 <?php
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
@@ -27,46 +26,173 @@ $role = $_SESSION['role'] ?? '';
           href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
 
     <style>
+        body {
+            background: #f8f9fa;
+        }
 
-/* SAMAKAN SIDEBAR DENGAN LAPORAN.PHP */
-.sidebar {
-    background: #212529 !important;
-    min-height: 100vh;
-}
+        .sidebar {
+            background: #212529 !important;
+            min-height: 100vh;
+        }
 
-.sidebar a {
-    color: white;
-}
+        .sidebar a {
+            color: white;
+        }
 
-.sidebar .nav-link {
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
-}
+        .sidebar .nav-link {
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+        }
 
-.sidebar .nav-link:hover {
-    background: #343a40;
-    color: white;
-}
+        .sidebar .nav-link:hover {
+            background: #343a40;
+            color: white;
+        }
 
-.sidebar .nav-link.active {
-    background: #007bff !important;
-    color: white !important;
-}
+        .sidebar .nav-link.active {
+            background: #007bff !important;
+            color: white !important;
+        }
 
-/* SAMAKAN UKURAN SIDEBAR DAN KONTEN */
-@media (min-width: 992px) {
-    .sidebar {
-        flex: 0 0 16.666667%;
-        max-width: 16.666667%;
-    }
+        main {
+            min-width: 0;
+        }
 
-    main.col-lg-10 {
-        flex: 0 0 83.333333%;
-        max-width: 83.333333%;
-    }
-}
+        .tabel-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            background: white;
+        }
 
+        #tabelRiwayat {
+            width: 100%;
+            margin-bottom: 0;
+        }
+
+        #tabelRiwayat th {
+            background: #212529;
+            color: white;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        #tabelRiwayat th,
+        #tabelRiwayat td {
+            padding: 10px;
+            vertical-align: middle;
+        }
+
+        .kontrol-tabel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .kontrol-tabel input {
+            max-width: 350px;
+        }
+
+        .pagination-area {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .pagination-area button {
+            border: 1px solid #007bff;
+            background: white;
+            color: #007bff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .pagination-area button:hover {
+            background: #007bff;
+            color: white;
+        }
+
+        .pagination-area button.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .pagination-area button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (min-width: 992px) {
+            .sidebar {
+                flex: 0 0 16.666667%;
+                max-width: 16.666667%;
+            }
+
+            main.col-lg-10 {
+                flex: 0 0 83.333333%;
+                max-width: 83.333333%;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .sidebar {
+                position: static !important;
+                min-height: auto;
+            }
+
+            main {
+                margin-left: 0 !important;
+                width: 100%;
+            }
+
+            .kontrol-tabel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .kontrol-tabel input {
+                max-width: 100%;
+            }
+        }
+
+        @media print {
+            .sidebar,
+            .kontrol-tabel,
+            .pagination-area,
+            .tombol-aksi,
+            #infoTabel {
+                display: none !important;
+            }
+
+            main {
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: 0 0 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            body {
+                background: white;
+            }
+
+            .tabel-wrapper {
+                overflow: visible;
+            }
+
+            #tabelRiwayat {
+                font-size: 11px;
+            }
+
+            #tabelRiwayat tr {
+                display: table-row !important;
+            }
+        }
     </style>
 </head>
 
@@ -76,7 +202,7 @@ $role = $_SESSION['role'] ?? '';
     <div class="row">
 
         <!-- SIDEBAR ADMIN -->
-        <?php if ($role === 'admin') { ?>
+        <?php if ($role == 'admin') { ?>
 
         <aside class="col-md-3 col-lg-2 sidebar p-3">
             <h4 class="text-white mb-4">My Website</h4>
@@ -154,16 +280,16 @@ $role = $_SESSION['role'] ?? '';
                 <hr class="bg-secondary">
 
                 <li class="nav-item">
-                    <a href="logout.php" class="nav-link text-danger">Logout</a>
+                    <a href="logout.php" class="nav-link text-danger">
+                        Logout
+                    </a>
                 </li>
 
             </ul>
         </aside>
 
-        <?php } ?>
-
-        <!-- SIDEBAR GURU -->
-        <?php if ($role === 'guru') { ?>
+        <!-- SIDEBAR WALI KELAS -->
+        <?php } elseif ($role == 'wali_kelas') { ?>
 
         <aside class="col-md-3 col-lg-2 sidebar p-3">
             <h4 class="text-white mb-4">My Website</h4>
@@ -176,28 +302,81 @@ $role = $_SESSION['role'] ?? '';
 
                 <li class="nav-item mb-2">
                     <a href="catatan_pelanggaran.php" class="nav-link">
-                        catatan
+                        Catatan
                     </a>
                 </li>
 
                 <li class="nav-item mb-2">
-                    <a href="tindakan.php" class="nav-link">tindakan</a>
+                    <a href="tindakan.php" class="nav-link">Tindakan</a>
                 </li>
 
                 <li class="nav-item mb-2">
-                    <a href="laporan.php" class="nav-link">laporan</a>
+                    <a href="laporan.php" class="nav-link">Laporan</a>
                 </li>
 
                 <li class="nav-item mb-2">
-                    <a href="riwayat.php" class="nav-link active">riwayat</a>
+                    <a href="riwayat.php" class="nav-link active">
+                        Riwayat
+                    </a>
                 </li>
 
                 <li class="nav-item mb-2">
-                    <a href="rekap_point.php" class="nav-link">rekap point</a>
+                    <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
                 </li>
+
+                <hr class="bg-secondary">
 
                 <li class="nav-item">
-                    <a href="logout.php" class="nav-link text-danger">Logout</a>
+                    <a href="logout.php" class="nav-link text-danger">
+                        Logout
+                    </a>
+                </li>
+
+            </ul>
+        </aside>
+
+        <!-- SIDEBAR GURU -->
+        <?php } elseif ($role == 'guru') { ?>
+
+        <aside class="col-md-3 col-lg-2 sidebar p-3">
+            <h4 class="text-white mb-4">My Website</h4>
+
+            <ul class="nav nav-pills flex-column">
+
+                <li class="nav-item mb-2">
+                    <a href="dashboard.php" class="nav-link">Dashboard</a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="catatan_pelanggaran.php" class="nav-link">
+                        Catatan
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="tindakan.php" class="nav-link">Tindakan</a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="laporan.php" class="nav-link">Laporan</a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="riwayat.php" class="nav-link active">
+                        Riwayat
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
+                </li>
+
+                <hr class="bg-secondary">
+
+                <li class="nav-item">
+                    <a href="logout.php" class="nav-link text-danger">
+                        Logout
+                    </a>
                 </li>
 
             </ul>
@@ -205,7 +384,12 @@ $role = $_SESSION['role'] ?? '';
 
         <?php } ?>
 
-        <?php if ($role !== 'admin' && $role !== 'guru') { ?>
+        <!-- ROLE TIDAK DIKENALI -->
+        <?php if (
+            $role !== 'admin' &&
+            $role !== 'guru' &&
+            $role !== 'wali_kelas'
+        ) { ?>
 
         <main class="col-12 p-4">
             <div class="alert alert-danger">
@@ -216,17 +400,24 @@ $role = $_SESSION['role'] ?? '';
         <?php } ?>
 
         <!-- KONTEN RIWAYAT -->
-        <?php if ($role === 'admin' || $role === 'guru') { ?>
+        <?php if (
+            $role === 'admin' ||
+            $role === 'guru' ||
+            $role === 'wali_kelas'
+        ) { ?>
 
         <main class="col-md-9 col-lg-10 p-4">
 
             <div class="d-flex justify-content-between align-items-center flex-wrap">
+
                 <div>
                     <h2>Riwayat Pelanggaran</h2>
+
                     <p class="text-muted">
                         Daftar jenis pelanggaran yang tersimpan dalam sistem.
                     </p>
                 </div>
+
             </div>
 
             <div class="card shadow-sm">
@@ -236,7 +427,9 @@ $role = $_SESSION['role'] ?? '';
                     <div class="kontrol-tabel">
 
                         <div>
-                            <label for="jumlahBaris">Tampilkan data:</label>
+                            <label for="jumlahBaris">
+                                Tampilkan data:
+                            </label>
 
                             <select id="jumlahBaris">
                                 <option value="5">5</option>
@@ -248,7 +441,9 @@ $role = $_SESSION['role'] ?? '';
                         </div>
 
                         <div>
-                            <label for="cariTabel">Cari data:</label>
+                            <label for="cariTabel">
+                                Cari data:
+                            </label>
 
                             <input
                                 type="search"
@@ -345,7 +540,7 @@ $role = $_SESSION['role'] ?? '';
                     <div class="tombol-aksi mt-3">
 
                         <a href="dashboard.php"
-                           class="btn btn-secondary kembali-dashboard">
+                           class="btn btn-secondary">
                             Kembali
                         </a>
 
@@ -556,11 +751,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 let teksA = a.cells[indeks].textContent.trim();
                 let teksB = b.cells[indeks].textContent.trim();
 
-                if (indeks === 5) {
-                    teksA = teksA.toLowerCase().trim();
-                    teksB = teksB.toLowerCase().trim();
-                }
-
                 if (header.dataset.sort === 'number') {
                     return (Number(teksA) - Number(teksB)) * arahUrut;
                 }
@@ -590,6 +780,54 @@ document.addEventListener('DOMContentLoaded', function () {
 
     jumlahBaris.addEventListener('change', function () {
         halamanAktif = 1;
+        renderTabel();
+    });
+
+    // CETAK SELURUH DATA
+    let kondisiCetak = null;
+
+    window.addEventListener('beforeprint', function () {
+
+        kondisiCetak = {
+            pencarian: inputCari.value,
+            jumlah: jumlahBaris.value,
+            halaman: halamanAktif
+        };
+
+        tbody.replaceChildren();
+
+        if (semuaBaris.length === 0) {
+
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+
+            td.colSpan = 6;
+            td.className = 'text-center';
+            td.textContent = 'Belum ada data pelanggaran.';
+
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+
+            return;
+        }
+
+        semuaBaris.forEach(function (tr) {
+            tbody.appendChild(tr);
+        });
+    });
+
+    window.addEventListener('afterprint', function () {
+
+        if (!kondisiCetak) {
+            return;
+        }
+
+        inputCari.value = kondisiCetak.pencarian;
+        jumlahBaris.value = kondisiCetak.jumlah;
+        halamanAktif = kondisiCetak.halaman;
+
+        kondisiCetak = null;
+
         renderTabel();
     });
 
