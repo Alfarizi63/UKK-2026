@@ -335,13 +335,13 @@ if (!$query) {
             <a href="tindakan.php" class="nav-link">Tindakan</a>
         </li>
         <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link active">Laporan</a>
+            <a href="laporan.php" class="nav-link">Laporan</a>
         </li>
         <li class="nav-item mb-2">
             <a href="riwayat.php" class="nav-link">Riwayat</a>
         </li>
         <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
+            <a href="rekap_point.php" class="nav-link active">Rekap Poin</a>
         </li>
         <hr class="bg-secondary">
         <li class="nav-item">
