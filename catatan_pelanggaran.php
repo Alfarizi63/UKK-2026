@@ -3,13 +3,25 @@
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
+// Halaman ini khusus admin
+$role = $_SESSION['role'] ?? '';
+
+if ($role === 'admin') {
+    $menu = $menu_admin;
+} elseif ($role === 'guru') {
+    $menu = $menu_guru;
+} elseif ($role === 'wali_kelas') {
+    $menu = $menu_guru;
+} else {
+    $menu = [];
+}
 // Ambil data pelanggaran + kategori
-$sql = "SELECT 
+$sql = "SELECT
             t_pelanggaran.*,
             t_pelanggaran_kategori.nama AS nama_kategori
         FROM t_pelanggaran
         LEFT JOIN t_pelanggaran_kategori
-        ON t_pelanggaran.pelanggaran_kategori_id = t_pelanggaran_kategori.id
+            ON t_pelanggaran.pelanggaran_kategori_id = t_pelanggaran_kategori.id
         ORDER BY t_pelanggaran.id DESC";
 
 $query = mysqli_query($koneksi, $sql);
@@ -36,7 +48,7 @@ if (!$query_kategori) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kelola Pelanggaran</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
         body {
@@ -46,50 +58,9 @@ if (!$query_kategori) {
             color: #212529;
         }
 
-        .sidebar {
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            width: 273px;
-            background: #343a40;
-            padding: 14px;
-            overflow-y: auto;
-            z-index: 1000;
-        }
-
-        .sidebar h4 {
-            color: white;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-
-        .sidebar a {
-            color: white;
-            display: block;
-            padding: 10px 14px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .sidebar a:hover {
-            background: #495057;
-        }
-
-        .sidebar a.active {
-            background: #007bff;
-            color: white;
-        }
-
-        .sidebar .nav-item {
-            margin-bottom: 2px !important;
-        }
-
-        .konten {
-            margin-left: 273px;
-            width: calc(100% - 273px);
-            padding: 20px;
+        .main-content {
+            margin-left: 250px;
+            padding: 25px;
             min-width: 0;
         }
 
@@ -97,7 +68,7 @@ if (!$query_kategori) {
             background: white;
             padding: 20px;
             border-radius: 5px;
-            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.08);
+            border: 1px solid #dee2e6;
         }
 
         .panel-konten h1 {
@@ -215,10 +186,6 @@ if (!$query_kategori) {
             vertical-align: middle;
         }
 
-        .table tbody tr:nth-child(odd) {
-            background: #ededed;
-        }
-
         .pagination-container {
             display: flex;
             justify-content: space-between;
@@ -246,28 +213,20 @@ if (!$query_kategori) {
                 display: none !important;
             }
 
-            .konten {
+            .main-content {
                 margin: 0;
                 padding: 0;
                 width: 100%;
             }
 
             .panel-konten {
-                box-shadow: none;
+                border: none;
             }
         }
 
         @media (max-width: 767px) {
-            .sidebar {
-                position: relative;
-                width: 100%;
-                height: auto;
-                bottom: auto;
-            }
-
-            .konten {
+            .main-content {
                 margin-left: 0;
-                width: 100%;
                 padding: 15px;
             }
 
@@ -297,163 +256,42 @@ if (!$query_kategori) {
 
 <body>
 
-<?php if ($_SESSION['role'] == 'admin') { ?>
+<?php include 'includes/sidebar.php'; ?>
 
-<div class="sidebar">
-    <h4>My Website</h4>
+<main class="main-content">
 
-    <ul class="nav nav-pills flex-column">
-        <li class="nav-item mb-2">
-            <a href="dashboard.php" class="nav-link">Dashboard</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_siswa.php" class="nav-link">Data Siswa</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_guru.php" class="nav-link">Data Guru</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_kelas.php" class="nav-link">Kelas</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_kategori_pelanggaran.php" class="nav-link">
-                kelola kategori pelanggaran
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_tahun_ajaran.php" class="nav-link">
-                Kelola tahun ajaran
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link">Laporan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_wali_kelas.php" class="nav-link">
-                kelola wali kelas
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_penempatan_siswa.php" class="nav-link">
-                kelola penempatan siswa
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link">rekap poin</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="riwayat.php" class="nav-link">riwayat</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_jenis_pelanggaran.php" class="nav-link active">
-                kelola jenis pelanggaran
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="export_pelanggaran.php" class="nav-link">
-                export pelanggaran
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="tentang_saya.php" class="nav-link">About Me</a>
-        </li>
-        <hr class="text-secondary">
-        <li class="nav-item">
-            <a href="login.php" class="nav-link text-danger">Logout</a>
-        </li>
-    </ul>
-</div>
-
-<?php } elseif ($_SESSION['role'] == 'wali_kelas') { ?>
-
-<div class="sidebar">
-    <h4 class="text-white mb-4">My Website</h4>
-
-    <ul class="nav nav-pills flex-column">
-        <li class="nav-item mb-2">
-            <a href="dashboard.php" class="nav-link">Dashboard</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="catatan_pelanggaran.php" class="nav-link active">
-                catatan
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="tindakan.php" class="nav-link">tindakan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link">laporan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="riwayat.php" class="nav-link">riwayat</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link">rekap point</a>
-        </li>
-        <a href="logout.php" class="nav-link text-danger">logout</a>
-    </ul>
-</div>
-
-
-<?php } elseif ($_SESSION['role'] == 'guru') { ?>
-
-<div class="sidebar">
-    <h4 class="text-white mb-4">My Website</h4>
-
-    <ul class="nav nav-pills flex-column">
-        <li class="nav-item mb-2">
-            <a href="dashboard.php" class="nav-link">Dashboard</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="catatan_pelanggaran.php" class="nav-link active">
-                catatan
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="tindakan.php" class="nav-link">tindakan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link">laporan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="riwayat.php" class="nav-link">riwayat</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link">rekap point</a>
-        </li>
-        <a href="logout.php" class="nav-link text-danger">logout</a>
-    </ul>
-</div>
-
-<?php } ?>
-
-<main class="konten">
     <div class="panel-konten">
 
-        <h1>selamat datang, <?php echo htmlspecialchars($_SESSION['name']);?></h1>
-        <p>anda login sebagai: <?php echo htmlspecialchars($_SESSION['role']);?></p>
+        <h1>
+            Selamat datang, <?= htmlspecialchars($_SESSION['name'] ?? '') ?>
+        </h1>
+
+        <p>
+            Anda login sebagai:
+            <?= htmlspecialchars($role) ?>
+        </p>
 
         <h1>Kelola Pelanggaran</h1>
 
-        <?php if (isset($_SESSION['pesan'])) { ?>
+        <?php if (isset($_SESSION['pesan'])): ?>
             <div class="pesan">
-                <?php
-                echo htmlspecialchars($_SESSION['pesan']);
-                unset($_SESSION['pesan']);
-                ?>
+                <?= htmlspecialchars($_SESSION['pesan']) ?>
             </div>
-        <?php } ?>
+            <?php unset($_SESSION['pesan']); ?>
+        <?php endif; ?>
 
         <hr>
 
         <h2>Tambah Pelanggaran</h2>
 
         <div class="form-pelanggaran">
+
             <form action="proses_pelanggaran.php" method="POST">
 
                 <input type="hidden" name="aksi" value="tambah">
 
                 <table>
+
                     <tr>
                         <td>Kategori</td>
                         <td>:</td>
@@ -461,11 +299,12 @@ if (!$query_kategori) {
                             <select name="pelanggaran_kategori_id" required>
                                 <option value="">-- Pilih Kategori --</option>
 
-                                <?php while ($kategori = mysqli_fetch_assoc($query_kategori)) { ?>
-                                    <option value="<?php echo $kategori['id']; ?>">
-                                        <?php echo htmlspecialchars($kategori['nama']); ?>
+                                <?php while ($kategori = mysqli_fetch_assoc($query_kategori)): ?>
+                                    <option value="<?= (int) $kategori['id'] ?>">
+                                        <?= htmlspecialchars($kategori['nama']) ?>
                                     </option>
-                                <?php } ?>
+                                <?php endwhile; ?>
+
                             </select>
                         </td>
                     </tr>
@@ -523,8 +362,11 @@ if (!$query_kategori) {
                             <button type="submit">Tambah Pelanggaran</button>
                         </td>
                     </tr>
+
                 </table>
+
             </form>
+
         </div>
 
         <hr>
@@ -538,6 +380,7 @@ if (!$query_kategori) {
         <h2>Data Pelanggaran</h2>
 
         <div class="toolbar">
+
             <input
                 type="text"
                 id="cariTabel"
@@ -547,18 +390,23 @@ if (!$query_kategori) {
 
             <div class="jumlah-data">
                 <label for="jumlahData" class="mb-0">Tampilkan:</label>
+
                 <select id="jumlahData" class="form-select form-select-sm">
                     <option value="10" selected>10</option>
                     <option value="25">25</option>
                     <option value="50">50</option>
                     <option value="100">100</option>
                 </select>
+
                 <span>data</span>
             </div>
+
         </div>
 
         <div class="table-responsive">
+
             <table id="tabelPelanggaran" class="table table-bordered table-striped">
+
                 <thead>
                     <tr>
                         <th>No</th>
@@ -573,70 +421,82 @@ if (!$query_kategori) {
                 </thead>
 
                 <tbody>
+
                     <?php
                     $no = 1;
 
-                    if (mysqli_num_rows($query) > 0) {
-                        while ($pelanggaran = mysqli_fetch_assoc($query)) {
+                    if (mysqli_num_rows($query) > 0):
+                        while ($pelanggaran = mysqli_fetch_assoc($query)):
                     ?>
+
                         <tr>
-                            <td><?php echo $no++; ?></td>
+
+                            <td><?= $no++ ?></td>
 
                             <td>
-                                <?php
-                                echo htmlspecialchars(
-                                    $pelanggaran['nama_kategori'] ?? '-'
-                                );
-                                ?>
+                                <?= htmlspecialchars($pelanggaran['nama_kategori'] ?? '-') ?>
                             </td>
 
                             <td>
-                                <?php echo htmlspecialchars($pelanggaran['kode']); ?>
+                                <?= htmlspecialchars($pelanggaran['kode'] ?? '-') ?>
                             </td>
 
                             <td>
-                                <?php echo htmlspecialchars($pelanggaran['nama']); ?>
+                                <?= htmlspecialchars($pelanggaran['nama'] ?? '-') ?>
                             </td>
 
                             <td>
-                                <?php echo htmlspecialchars($pelanggaran['poin']); ?>
+                                <?= htmlspecialchars($pelanggaran['poin'] ?? '0') ?>
                             </td>
 
                             <td>
-                                <?php echo htmlspecialchars($pelanggaran['deskripsi']); ?>
+                                <?= htmlspecialchars($pelanggaran['deskripsi'] ?? '-') ?>
                             </td>
 
                             <td>
-                                <?php if ($pelanggaran['status_aktif'] == 1) { ?>
+                                <?php if ($pelanggaran['status_aktif'] == 1): ?>
                                     <span class="badge bg-success">Aktif</span>
-                                <?php } else { ?>
+                                <?php else: ?>
                                     <span class="badge bg-danger">Tidak Aktif</span>
-                                <?php } ?>
+                                <?php endif; ?>
                             </td>
 
                             <td>
                                 <a
-                                    href="edit_pelanggaran.php?id=<?php echo (int) $pelanggaran['id']; ?>"
+                                    href="edit_pelanggaran.php?id=<?= (int) $pelanggaran['id'] ?>"
                                     class="btn btn-primary btn-sm"
-                                >Edit</a>
+                                >
+                                    Edit
+                                </a>
 
                                 <a
-                                    href="proses_pelanggaran.php?aksi=hapus&id=<?php echo (int) $pelanggaran['id']; ?>"
+                                    href="proses_pelanggaran.php?aksi=hapus&id=<?= (int) $pelanggaran['id'] ?>"
                                     class="btn btn-danger btn-sm"
                                     onclick="return confirm('Yakin ingin menghapus pelanggaran ini?');"
-                                >Hapus</a>
+                                >
+                                    Hapus
+                                </a>
+                            </td>
+
+                        </tr>
+
+                    <?php
+                        endwhile;
+                    else:
+                    ?>
+
+                        <tr>
+                            <td colspan="8" class="text-center">
+                                Belum ada data pelanggaran.
                             </td>
                         </tr>
-                    <?php
-                        }
-                    } else {
-                    ?>
-                        <tr>
-                            <td colspan="8">Belum ada data pelanggaran.</td>
-                        </tr>
-                    <?php } ?>
+
+                    <?php endif; ?>
+
                 </tbody>
+
             </table>
+
         </div>
 
         <div class="pagination-container">
@@ -645,10 +505,12 @@ if (!$query_kategori) {
         </div>
 
     </div>
+
 </main>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+
     const tabel = document.getElementById('tabelPelanggaran');
     const pencarian = document.getElementById('cariTabel');
     const jumlahData = document.getElementById('jumlahData');
@@ -656,12 +518,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const pagination = document.getElementById('pagination');
 
     const semuaBaris = Array.from(tabel.querySelectorAll('tbody tr'));
+
     const punyaData = semuaBaris.length > 0 &&
         !(semuaBaris.length === 1 && semuaBaris[0].cells.length === 1);
 
     let halaman = 1;
 
     function tampilkanTabel() {
+
         const kata = pencarian.value.toLowerCase();
 
         const barisCocok = punyaData
@@ -672,7 +536,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const perHalaman = parseInt(jumlahData.value, 10);
         const totalData = barisCocok.length;
-        const totalHalaman = Math.max(1, Math.ceil(totalData / perHalaman));
+
+        const totalHalaman = Math.max(
+            1,
+            Math.ceil(totalData / perHalaman)
+        );
 
         if (halaman > totalHalaman) {
             halaman = totalHalaman;
@@ -691,24 +559,31 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         if (totalData === 0) {
+
             info.textContent = punyaData
                 ? 'Tidak ada data yang cocok.'
                 : 'Belum ada data pelanggaran.';
+
         } else {
+
             info.textContent =
                 'Menampilkan ' + (mulai + 1) + '–' + akhir +
                 ' dari ' + totalData + ' data pelanggaran';
+
         }
 
         pagination.innerHTML = '';
 
         function buatTombol(teks, nomor, nonaktif, aktif) {
+
             const li = document.createElement('li');
+
             li.className = 'page-item' +
                 (nonaktif ? ' disabled' : '') +
                 (aktif ? ' active' : '');
 
             const tombol = document.createElement('button');
+
             tombol.type = 'button';
             tombol.className = 'page-link';
             tombol.textContent = teks;
@@ -721,22 +596,43 @@ document.addEventListener('DOMContentLoaded', function () {
 
             li.appendChild(tombol);
             pagination.appendChild(li);
+
         }
 
-        buatTombol('Sebelumnya', halaman - 1, halaman === 1, false);
+        buatTombol(
+            'Sebelumnya',
+            halaman - 1,
+            halaman === 1,
+            false
+        );
 
         for (let i = 1; i <= totalHalaman; i++) {
+
             if (
                 totalHalaman <= 7 ||
                 i === 1 ||
                 i === totalHalaman ||
                 Math.abs(i - halaman) <= 1
             ) {
-                buatTombol(String(i), i, false, i === halaman);
+
+                buatTombol(
+                    String(i),
+                    i,
+                    false,
+                    i === halaman
+                );
+
             }
+
         }
 
-        buatTombol('Berikutnya', halaman + 1, halaman >= totalHalaman, false);
+        buatTombol(
+            'Berikutnya',
+            halaman + 1,
+            halaman >= totalHalaman,
+            false
+        );
+
     }
 
     pencarian.addEventListener('input', function () {
@@ -750,6 +646,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     tampilkanTabel();
+
 });
 </script>
 

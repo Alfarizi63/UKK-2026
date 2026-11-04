@@ -1,6 +1,12 @@
 
 <?php
 include 'includes/cek_session.php';
+
+if (($_SESSION['role'] ?? '') !== 'admin') {
+    header('Location: dashboard.php');
+    exit;
+}
+
 include 'config/koneksi.php';
 
 $sql = "
@@ -31,7 +37,7 @@ if (!$query) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Penempatan Siswa</title>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
         body {
@@ -39,44 +45,8 @@ if (!$query) {
             margin: 0;
         }
 
-        .sidebar {
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            width: 250px;
-            background: #343a40;
-            padding: 20px 15px;
-            overflow-y: auto;
-            z-index: 1000;
-        }
-
-        .sidebar h4 {
-            color: white;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-
-        .sidebar a {
-            color: white;
-            display: block;
-            padding: 10px 14px;
-            border-radius: 4px;
-            text-decoration: none;
-        }
-
-        .sidebar a:hover {
-            background: #495057;
-        }
-
-        .sidebar a.active {
-            background: #007bff;
-            color: white;
-        }
-
-        .konten {
+        .main-content {
             margin-left: 250px;
-            width: calc(100% - 250px);
             padding: 25px;
             min-width: 0;
         }
@@ -88,16 +58,8 @@ if (!$query) {
         }
 
         @media (max-width: 767px) {
-            .sidebar {
-                position: relative;
-                width: 100%;
-                height: auto;
-                bottom: auto;
-            }
-
-            .konten {
+            .main-content {
                 margin-left: 0;
-                width: 100%;
                 padding: 15px;
             }
         }
@@ -106,92 +68,31 @@ if (!$query) {
 
 <body>
 
-<div class="sidebar">
-    <h4>My Website</h4>
+<?php include 'includes/sidebar.php'; ?>
 
-    <ul class="nav nav-pills flex-column">
-        <li class="nav-item mb-2">
-            <a href="dashboard.php" class="nav-link">Dashboard</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_siswa.php" class="nav-link">Data Siswa</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_guru.php" class="nav-link">Data Guru</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_kelas.php" class="nav-link">Kelas</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_kategori_pelanggaran.php" class="nav-link">kelola kategori pelanggaran</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_tahun_ajaran.php" class="nav-link">kelola tahun ajaran</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link">Laporan</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_wali_kelas.php" class="nav-link">kelola wali kelas</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_penempatan_siswa.php" class="nav-link active">kelola penempatan siswa</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link">rekap poin</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="riwayat.php" class="nav-link">riwayat</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_jenis_pelanggaran.php" class="nav-link">kelola jenis pelanggaran</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="export_pelanggaran.php" class="nav-link">export pelanggaran</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="tentang_saya.php" class="nav-link">About Me</a>
-        </li>
-
-        <hr class="text-secondary">
-
-        <li class="nav-item">
-            <a href="logout.php" class="nav-link text-danger">Logout</a>
-        </li>
-    </ul>
-</div>
-
-<main class="konten">
+<main class="main-content">
 
     <h2>Penempatan Siswa</h2>
     <p>Kelola penempatan siswa berdasarkan kelas dan tahun ajaran.</p>
 
-    <a href="dashboard.php">Kembali ke Dashboard</a> |
-    <a href="tambah_penempatan_siswa.php">Tambah Penempatan Siswa</a>
+    <div class="mb-3">
+        <a href="dashboard.php" class="btn btn-secondary btn-sm">
+            Kembali ke Dashboard
+        </a>
 
-    <br><br>
+        <a href="tambah_penempatan_siswa.php" class="btn btn-primary btn-sm">
+            Tambah Penempatan Siswa
+        </a>
+    </div>
 
-    <div class="form-group">
+    <div class="form-group mb-3">
         <input type="text" id="cariTabel" class="form-control"
                placeholder="Cari data penempatan siswa...">
     </div>
 
     <div class="table-responsive">
         <table id="tabelPenempatan" class="table table-bordered table-striped">
-            <thead class="thead-dark">
+            <thead class="table-dark">
                 <tr>
                     <th>No</th>
                     <th>NIS</th>
@@ -215,27 +116,28 @@ if (!$query) {
                     <td><?= htmlspecialchars($row['nama_siswa'] ?? '-') ?></td>
                     <td><?= htmlspecialchars($row['nama_kelas'] ?? '-') ?></td>
                     <td><?= htmlspecialchars($row['tahun_ajaran'] ?? '-') ?></td>
-                    
-<td>
-    <a class="btn btn-warning btn-sm"
-       href="edit_penempatan_siswa.php?id=<?= (int) $row['id'] ?>">
-        Edit
-    </a>
 
-    <a class="btn btn-danger btn-sm"
-       href="hapus_penempatan_siswa.php?id=<?= (int) $row['id'] ?>"
-       onclick="return confirm('Yakin ingin menghapus penempatan siswa ini?')">
-        Hapus
-    </a>
-</td>
+                    <td>
+                        <a class="btn btn-warning btn-sm"
+                           href="edit_penempatan_siswa.php?id=<?= (int) $row['id'] ?>">
+                            Edit
+                        </a>
 
+                        <a class="btn btn-danger btn-sm"
+                           href="hapus_penempatan_siswa.php?id=<?= (int) $row['id'] ?>"
+                           onclick="return confirm('Yakin ingin menghapus penempatan siswa ini?')">
+                            Hapus
+                        </a>
+                    </td>
                 </tr>
             <?php
                 }
             } else {
             ?>
                 <tr>
-                    <td colspan="6" class="text-center">Belum ada data penempatan siswa.</td>
+                    <td colspan="6" class="text-center">
+                        Belum ada data penempatan siswa.
+                    </td>
                 </tr>
             <?php } ?>
             </tbody>
@@ -244,10 +146,12 @@ if (!$query) {
 
     <div class="d-flex justify-content-between align-items-center mt-3">
         <small id="infoTabel"></small>
+
         <div>
             <button type="button" id="sebelumnya" class="btn btn-secondary btn-sm">
                 Sebelumnya
             </button>
+
             <button type="button" id="berikutnya" class="btn btn-primary btn-sm">
                 Berikutnya
             </button>

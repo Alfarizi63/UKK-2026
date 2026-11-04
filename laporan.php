@@ -3,6 +3,13 @@
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
+$role = $_SESSION['role'] ?? '';
+
+if (!in_array($role, ['admin', 'guru', 'wali_kelas'], true)) {
+    header('Location: dashboard.php');
+    exit;
+}
+
 $tahun_ajaran_id = (int) ($_GET['tahun_ajaran_id'] ?? 0);
 $kelas_id = (int) ($_GET['kelas_id'] ?? 0);
 
@@ -78,27 +85,9 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laporan Penempatan Siswa</title>
 
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
-        body {
-            background: #f8f9fa;
-        }
-
-        .sidebar {
-            min-height: 100vh;
-            background: #212529;
-        }
-
-        .sidebar a {
-            color: white;
-        }
-
-        .sidebar a:hover {
-            background: #343a40;
-        }
-
         main {
             min-width: 0;
         }
@@ -147,18 +136,6 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
             margin: 15px 0;
         }
 
-        @media (max-width: 767px) {
-            .sidebar {
-                position: static !important;
-                min-height: auto;
-            }
-
-            main {
-                margin-left: 0 !important;
-                width: 100%;
-            }
-        }
-
         @media print {
             .sidebar,
             .filter-laporan,
@@ -170,16 +147,14 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                 display: none !important;
             }
 
-            main {
+            .main-content {
                 width: 100% !important;
-                max-width: 100% !important;
-                flex: 0 0 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
             }
 
             body {
-                background: white;
+                background: white !important;
             }
 
             .tabel-wrapper {
@@ -199,235 +174,105 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
 
 <body>
 
-<div class="container-fluid">
-    <div class="row">
+<?php include 'includes/sidebar.php'; ?>
 
-    
-<!-- SIDEBAR ADMIN -->
-<?php if ($_SESSION['role'] == 'admin') { ?>
+<main class="main-content">
 
-<aside class="col-md-3 col-lg-2 sidebar p-3">
-    <h4 class="text-white mb-4">My Website</h4>
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+            <h1>Laporan Penempatan Siswa</h1>
+            <p class="text-muted">
+                Laporan data siswa berdasarkan kelas dan tahun ajaran.
+            </p>
+        </div>
 
-    <ul class="nav nav-pills flex-column">
-        <li class="nav-item mb-2">
-            <a href="dashboard.php" class="nav-link">Dashboard</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_siswa.php" class="nav-link">Data Siswa</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_guru.php" class="nav-link">Data Guru</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_kelas.php" class="nav-link">Kelas</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_kategori_pelanggaran.php" class="nav-link">
-                Kelola Kategori Pelanggaran
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_tahun_ajaran.php" class="nav-link">
-                Kelola Tahun Ajaran
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link active">Laporan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_wali_kelas.php" class="nav-link">
-                Kelola Wali Kelas
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_penempatan_siswa.php" class="nav-link">
-                Kelola Penempatan Siswa
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="riwayat.php" class="nav-link">Riwayat</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_jenis_pelanggaran.php" class="nav-link">
-                Kelola Jenis Pelanggaran
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="export_pelanggaran.php" class="nav-link">
-                Export Pelanggaran
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="tentang_saya.php" class="nav-link">About Me</a>
-        </li>
-        <hr class="bg-secondary">
-        <li class="nav-item">
-            <a href="logout.php" class="nav-link text-danger">Logout</a>
-        </li>
-    </ul>
-</aside>
+        <div class="tombol-aksi mb-3">
+            <button type="button"
+                    onclick="window.print()"
+                    class="btn btn-success">
+                Cetak Laporan
+            </button>
+        </div>
+    </div>
 
-<?php } elseif ($_SESSION['role'] == 'wali_kelas') { ?>
+    <a href="dashboard.php"
+       class="btn btn-secondary mb-3 kembali-dashboard">
+        Kembali ke Dashboard
+    </a>
 
-<!-- SIDEBAR WALI KELAS -->
-<aside class="col-md-3 col-lg-2 sidebar p-3">
-    <h4 class="text-white mb-4">My Website</h4>
+    <hr>
 
-    <ul class="nav nav-pills flex-column">
-        <li class="nav-item mb-2">
-            <a href="dashboard.php" class="nav-link">Dashboard</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="catatan_pelanggaran.php" class="nav-link">Catatan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="tindakan.php" class="nav-link">Tindakan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link active">Laporan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="riwayat.php" class="nav-link">Riwayat</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
-        </li>
-        <hr class="bg-secondary">
-        <li class="nav-item">
-            <a href="logout.php" class="nav-link text-danger">Logout</a>
-        </li>
-    </ul>
-</aside>
+    <!-- FILTER LAPORAN -->
+    <div class="card shadow-sm mb-4 filter-laporan">
+        <div class="card-header bg-primary text-white">
+            Filter Laporan
+        </div>
 
-<?php } elseif ($_SESSION['role'] == 'guru') { ?>
+        <div class="card-body">
+            <form method="GET" action="laporan.php">
+                <div class="row">
 
-<!-- SIDEBAR GURU -->
-<aside class="col-md-3 col-lg-2 sidebar p-3">
-    <h4 class="text-white mb-4">My Website</h4>
+                    <div class="col-md-5 mb-3">
+                        <label class="form-label">Tahun Ajaran:</label>
 
-    <ul class="nav nav-pills flex-column">
-        <li class="nav-item mb-2">
-            <a href="dashboard.php" class="nav-link">Dashboard</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="catatan_pelanggaran.php" class="nav-link">Catatan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="tindakan.php" class="nav-link">Tindakan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link active">Laporan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="riwayat.php" class="nav-link">Riwayat</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
-        </li>
-        <hr class="bg-secondary">
-        <li class="nav-item">
-            <a href="logout.php" class="nav-link text-danger">Logout</a>
-        </li>
-    </ul>
-</aside>
+                        <select name="tahun_ajaran_id" class="form-select">
+                            <option value="0">Semua Tahun Ajaran</option>
 
-<?php } ?>
-        <!-- KONTEN -->
-        <main class="col-md-9 col-lg-10 p-4">
+                            <?php foreach ($data_tahun as $ta) { ?>
+                                <option
+                                    value="<?= (int)$ta['id'] ?>"
+                                    <?= $tahun_ajaran_id == $ta['id'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($ta['nama']) ?>
+                                </option>
+                            <?php } ?>
+                        </select>
+                    </div>
 
-            <div class="d-flex justify-content-between align-items-center flex-wrap">
-                <div>
-                    <h1>Laporan Penempatan Siswa</h1>
-                    <p class="text-muted">
-                        Laporan data siswa berdasarkan kelas dan tahun ajaran.
-                    </p>
+                    <div class="col-md-5 mb-3">
+                        <label class="form-label">Kelas:</label>
+
+                        <select name="kelas_id" class="form-select">
+                            <option value="0">Semua Kelas</option>
+
+                            <?php foreach ($data_kelas as $kelas) { ?>
+                                <option
+                                    value="<?= (int)$kelas['id'] ?>"
+                                    <?= $kelas_id == $kelas['id'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars(
+                                        $kelas['nama'] . ' - ' .
+                                        $kelas['tingkat'] . ' - ' .
+                                        $kelas['jurusan']
+                                    ) ?>
+                                </option>
+                            <?php } ?>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 d-flex align-items-end mb-3">
+                        <button type="submit" class="btn btn-primary w-100">
+                            Tampilkan
+                        </button>
+                    </div>
+
                 </div>
+            </form>
+        </div>
+    </div>
 
-                <div class="tombol-aksi mb-3">
-                    <button type="button"
-                            onclick="window.print()"
-                            class="btn btn-success">
-                        Cetak Laporan
-                    </button>
-                </div>
-            </div>
+    <!-- TABEL LAPORAN -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h4 class="mb-0">Data Penempatan Siswa</h4>
+        </div>
 
-            <a href="dashboard.php" class="btn btn-secondary mb-3 kembali-dashboard">
-                Kembali ke Dashboard
-            </a>
-
-            <hr>
-
-            <!-- FILTER LAPORAN -->
-            <div class="card shadow-sm mb-4 filter-laporan">
-                <div class="card-header bg-primary text-white">
-                    Filter Laporan
-                </div>
-
-                <div class="card-body">
-                    <form method="GET" action="laporan.php">
-                        <div class="form-row">
-
-                            <div class="form-group col-md-5">
-                                <label>Tahun Ajaran:</label>
-
-                                <select name="tahun_ajaran_id" class="form-control">
-                                    <option value="0">Semua Tahun Ajaran</option>
-
-                                    <?php foreach ($data_tahun as $ta) { ?>
-                                        <option
-                                            value="<?= (int)$ta['id'] ?>"
-                                            <?= $tahun_ajaran_id == $ta['id'] ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($ta['nama']) ?>
-                                        </option>
-                                    <?php } ?>
-                                </select>
-                            </div>
-
-                            <div class="form-group col-md-5">
-                                <label>Kelas:</label>
-
-                                <select name="kelas_id" class="form-control">
-                                    <option value="0">Semua Kelas</option>
-
-                                    <?php foreach ($data_kelas as $kelas) { ?>
-                                        <option
-                                            value="<?= (int)$kelas['id'] ?>"
-                                            <?= $kelas_id == $kelas['id'] ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars(
-                                                $kelas['nama'] . ' - ' .
-                                                $kelas['tingkat'] . ' - ' .
-                                                $kelas['jurusan']
-                                            ) ?>
-                                        </option>
-                                    <?php } ?>
-                                </select>
-                            </div>
-
-                            <div class="form-group col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary btn-block">
-                                    Tampilkan
-                                </button>
-                            </div>
-
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- TABEL LAPORAN -->
-            <h2>Data Penempatan Siswa</h2>
+        <div class="card-body">
 
             <div class="kontrol-tabel">
                 <label class="mb-0">
                     Tampilkan
                     <select id="jumlahData"
-                            class="form-control"
-                            style="display:inline-block;width:auto;">
+                            class="form-select d-inline-block"
+                            style="width: auto;">
                         <option value="5">5</option>
                         <option value="10" selected>10</option>
                         <option value="25">25</option>
@@ -443,7 +288,9 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
             </div>
 
             <div class="tabel-wrapper">
-                <table class="table table-bordered table-hover" id="tabelLaporan">
+                <table class="table table-bordered table-hover"
+                       id="tabelLaporan">
+
                     <thead>
                         <tr>
                             <th>No</th>
@@ -477,15 +324,17 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                             </tr>
                         <?php } ?>
                     </tbody>
+
                 </table>
             </div>
 
             <p id="infoData" class="mt-3"></p>
             <div id="paginasi" class="paginasi"></div>
 
-        </main>
+        </div>
     </div>
-</div>
+
+</main>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -621,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Saat mencetak, tampilkan seluruh data hasil filter database.
+    // Cetak seluruh data, bukan hanya halaman yang sedang tampil.
     let kondisiCetak = null;
 
     window.addEventListener('beforeprint', function () {
@@ -630,16 +479,6 @@ document.addEventListener('DOMContentLoaded', function () {
             jumlah: jumlah.value,
             halaman: halaman
         };
-
-        tbody.replaceChildren();
-
-        if (baris.length === 0) {
-            const tr = document.createElement('tr');
-            tr.innerHTML =
-                '<td colspan="7" class="text-center">Tidak ada data penempatan siswa.</td>';
-            tbody.appendChild(tr);
-            return;
-        }
 
         let semuaBaris = baris.slice();
 
@@ -653,6 +492,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     sensitivity: 'base'
                 }) * arah;
             });
+        }
+
+        tbody.replaceChildren();
+
+        if (semuaBaris.length === 0) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td colspan="7" class="text-center">Tidak ada data penempatan siswa.</td>';
+            tbody.appendChild(tr);
+            return;
         }
 
         semuaBaris.forEach(function (tr, index) {

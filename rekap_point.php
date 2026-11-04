@@ -1,6 +1,14 @@
 
 <?php
 include 'includes/cek_session.php';
+
+$role = $_SESSION['role'] ?? '';
+
+if (!in_array($role, ['admin', 'guru', 'wali_kelas'], true)) {
+    header('Location: dashboard.php');
+    exit;
+}
+
 include 'config/koneksi.php';
 
 $sql = "
@@ -31,7 +39,7 @@ if (!$query) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rekap Poin Pelanggaran Siswa</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
         body {
@@ -41,50 +49,9 @@ if (!$query) {
             color: #212529;
         }
 
-        .sidebar {
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            width: 273px;
-            background: #343a40;
-            padding: 14px;
-            overflow-y: auto;
-            z-index: 1000;
-        }
-
-        .sidebar h4 {
-            color: white;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-
-        .sidebar a {
-            color: white;
-            display: block;
-            padding: 10px 14px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .sidebar a:hover {
-            background: #495057;
-        }
-
-        .sidebar a.active {
-            background: #007bff;
-            color: white;
-        }
-
-        .sidebar .nav-item {
-            margin-bottom: 2px !important;
-        }
-
-        .konten {
-            margin-left: 273px;
-            width: calc(100% - 273px);
-            padding: 20px 20px;
+        .main-content {
+            margin-left: 250px;
+            padding: 25px;
             min-width: 0;
         }
 
@@ -175,7 +142,7 @@ if (!$query) {
                 display: none !important;
             }
 
-            .konten {
+            .main-content {
                 margin: 0;
                 padding: 0;
                 width: 100%;
@@ -187,16 +154,8 @@ if (!$query) {
         }
 
         @media (max-width: 767px) {
-            .sidebar {
-                position: relative;
-                width: 100%;
-                height: auto;
-                bottom: auto;
-            }
-
-            .konten {
+            .main-content {
                 margin-left: 0;
-                width: 100%;
                 padding: 15px;
             }
 
@@ -218,153 +177,29 @@ if (!$query) {
 
 <body>
 
-<!-- SIDEBAR ADMIN -->
-<?php if ($_SESSION['role'] == 'admin') { ?>
+<?php include 'includes/sidebar.php'; ?>
 
-<aside class="col-md-3 col-lg-2 sidebar p-3">
-    <h4 class="text-white mb-4">My Website</h4>
-
-    <ul class="nav nav-pills flex-column">
-        <li class="nav-item mb-2">
-            <a href="dashboard.php" class="nav-link">Dashboard</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_siswa.php" class="nav-link">Data Siswa</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_guru.php" class="nav-link">Data Guru</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_kelas.php" class="nav-link">Kelas</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_kategori_pelanggaran.php" class="nav-link">
-                Kelola Kategori Pelanggaran
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_tahun_ajaran.php" class="nav-link">
-                Kelola Tahun Ajaran
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link active">Laporan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_wali_kelas.php" class="nav-link">
-                Kelola Wali Kelas
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_penempatan_siswa.php" class="nav-link">
-                Kelola Penempatan Siswa
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="riwayat.php" class="nav-link">Riwayat</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="kelola_jenis_pelanggaran.php" class="nav-link">
-                Kelola Jenis Pelanggaran
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="export_pelanggaran.php" class="nav-link">
-                Export Pelanggaran
-            </a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="tentang_saya.php" class="nav-link">About Me</a>
-        </li>
-        <hr class="bg-secondary">
-        <li class="nav-item">
-            <a href="logout.php" class="nav-link text-danger">Logout</a>
-        </li>
-    </ul>
-</aside>
-
-<?php } elseif ($_SESSION['role'] == 'wali_kelas') { ?>
-
-<!-- SIDEBAR WALI KELAS -->
-<aside class="col-md-3 col-lg-2 sidebar p-3">
-    <h4 class="text-white mb-4">My Website</h4>
-
-    <ul class="nav nav-pills flex-column">
-        <li class="nav-item mb-2">
-            <a href="dashboard.php" class="nav-link">Dashboard</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="catatan_pelanggaran.php" class="nav-link">Catatan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="tindakan.php" class="nav-link">Tindakan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link">Laporan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="riwayat.php" class="nav-link">Riwayat</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link active">Rekap Poin</a>
-        </li>
-        <hr class="bg-secondary">
-        <li class="nav-item">
-            <a href="logout.php" class="nav-link text-danger">Logout</a>
-        </li>
-    </ul>
-</aside>
-
-<?php } elseif ($_SESSION['role'] == 'guru') { ?>
-
-<!-- SIDEBAR GURU -->
-<aside class="col-md-3 col-lg-2 sidebar p-3">
-    <h4 class="text-white mb-4">My Website</h4>
-
-    <ul class="nav nav-pills flex-column">
-        <li class="nav-item mb-2">
-            <a href="dashboard.php" class="nav-link">Dashboard</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="catatan_pelanggaran.php" class="nav-link">Catatan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="tindakan.php" class="nav-link">Tindakan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link">Laporan</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="riwayat.php" class="nav-link">Riwayat</a>
-        </li>
-        <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link active">Rekap Poin</a>
-        </li>
-        <hr class="bg-secondary">
-        <li class="nav-item">
-            <a href="logout.php" class="nav-link text-danger">Logout</a>
-        </li>
-    </ul>
-</aside>
-
-<?php } ?>
-
-<main class="konten">
+<main class="main-content">
     <div class="panel-konten">
 
-        <?php if ($_SESSION['role'] == 'guru') { ?>
-            <h1>selamat datang, <?php echo $_SESSION['name'];?></h1>
-            <p>anda login sebagai: <?php echo $_SESSION['role']?></p>
+        <?php if ($role === 'guru' || $role === 'wali_kelas') { ?>
+            <h4>
+                Selamat datang, <?= htmlspecialchars($_SESSION['name'] ?? '') ?>
+            </h4>
+            <p>Anda login sebagai: <?= htmlspecialchars($role) ?></p>
         <?php } ?>
 
         <h2>Rekap Poin Pelanggaran Siswa</h2>
 
         <div class="tombol-aksi">
-            <a href="dashboard.php" class="btn btn-secondary btn-sm">Kembali ke Dashboard</a>
-            <button type="button" onclick="window.print()" class="btn btn-primary btn-sm tombol-cetak">Cetak Laporan</button>
+            <a href="dashboard.php" class="btn btn-secondary btn-sm">
+                Kembali ke Dashboard
+            </a>
+
+            <button type="button" onclick="window.print()"
+                    class="btn btn-primary btn-sm tombol-cetak">
+                Cetak Laporan
+            </button>
         </div>
 
         <div class="toolbar">
@@ -377,12 +212,14 @@ if (!$query) {
 
             <div class="jumlah-data">
                 <label for="jumlahData" class="mb-0">Tampilkan:</label>
+
                 <select id="jumlahData" class="form-select form-select-sm">
                     <option value="10" selected>10</option>
                     <option value="25">25</option>
                     <option value="50">50</option>
                     <option value="100">100</option>
                 </select>
+
                 <span>data</span>
             </div>
         </div>
@@ -409,8 +246,8 @@ if (!$query) {
                         <td><?= $no++; ?></td>
                         <td><?= htmlspecialchars($data['nis'] ?? ''); ?></td>
                         <td><?= htmlspecialchars($data['nama'] ?? ''); ?></td>
-                        <td><?= $data['jumlah_pelanggaran']; ?></td>
-                        <td><?= $data['total_poin']; ?></td>
+                        <td><?= (int) $data['jumlah_pelanggaran']; ?></td>
+                        <td><?= (int) $data['total_poin']; ?></td>
                     </tr>
                     <?php } ?>
                 </tbody>
@@ -434,9 +271,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const pagination = document.getElementById('pagination');
 
     const semuaBaris = Array.from(tabel.querySelectorAll('tbody tr'));
-    const teksAwal = semuaBaris.map(function (baris) {
-        return baris.cells[0].textContent;
-    });
 
     let halaman = 1;
 
@@ -479,6 +313,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         function buatTombol(teks, nomor, nonaktif, aktif) {
             const li = document.createElement('li');
+
             li.className = 'page-item' +
                 (nonaktif ? ' disabled' : '') +
                 (aktif ? ' active' : '');

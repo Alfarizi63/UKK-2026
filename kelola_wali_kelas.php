@@ -3,6 +3,12 @@
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
+// Khusus admin
+if (($_SESSION['role'] ?? '') !== 'admin') {
+    header('Location: dashboard.php');
+    exit;
+}
+
 $sql = "
     SELECT
         wk.id,
@@ -36,64 +42,9 @@ if (!$query) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kelola Wali Kelas</title>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
-        body {
-            background: #f8f9fa;
-            margin: 0;
-            font-family: Arial, sans-serif;
-            color: #212529;
-        }
-
-        .sidebar {
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            width: 273px;
-            background: #343a40;
-            padding: 14px;
-            overflow-y: auto;
-            z-index: 1000;
-        }
-
-        .sidebar h4 {
-            color: white;
-            font-weight: bold;
-            margin: 0 0 20px;
-            padding-top: 0;
-        }
-
-        .sidebar a {
-            color: white;
-            display: block;
-            padding: 10px 14px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .sidebar a:hover {
-            background: #495057;
-        }
-
-        .sidebar a.active {
-            background: #007bff;
-            color: white;
-        }
-
-        .sidebar .nav-item {
-            margin-bottom: 2px !important;
-        }
-
-        .konten {
-            margin-left: 273px;
-            padding: 20px 38px;
-            min-width: 0;
-            width: calc(100% - 273px);
-        }
-
         .panel-konten {
             background: #fff;
             padding: 20px;
@@ -150,6 +101,7 @@ if (!$query) {
             border-color: #343a40;
             vertical-align: middle;
             padding: 13px 10px;
+            white-space: nowrap;
         }
 
         .table tbody td {
@@ -157,17 +109,9 @@ if (!$query) {
             vertical-align: middle;
         }
 
-        .table tbody tr:nth-child(odd) {
-            background: #ededed;
-        }
-
-        .table tbody tr:nth-child(even) {
-            background: #fff;
-        }
-
         .badge-status {
             display: inline-block;
-            padding: 2px 5px;
+            padding: 4px 7px;
             border-radius: 3px;
             font-size: 11px;
             font-weight: bold;
@@ -180,11 +124,6 @@ if (!$query) {
 
         .status-nonaktif {
             background: #dc3545;
-        }
-
-        .btn-sm {
-            font-size: 12px;
-            padding: 5px 8px;
         }
 
         .pagination-container {
@@ -205,19 +144,6 @@ if (!$query) {
         }
 
         @media (max-width: 767px) {
-            .sidebar {
-                position: relative;
-                width: 100%;
-                height: auto;
-                bottom: auto;
-            }
-
-            .konten {
-                margin-left: 0;
-                width: 100%;
-                padding: 15px;
-            }
-
             .toolbar {
                 flex-direction: column;
                 align-items: stretch;
@@ -240,96 +166,27 @@ if (!$query) {
 
 <body>
 
-<div class="sidebar">
-    <h4>My Website</h4>
+<?php include 'includes/sidebar.php'; ?>
 
-    <ul class="nav nav-pills flex-column">
-        <li class="nav-item mb-2">
-            <a href="dashboard.php" class="nav-link">Dashboard</a>
-        </li>
+<main class="main-content">
 
-        <li class="nav-item mb-2">
-            <a href="kelola_siswa.php" class="nav-link">Data Siswa</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_guru.php" class="nav-link">Data Guru</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_kelas.php" class="nav-link">Kelas</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_kategori_pelanggaran.php" class="nav-link">
-                kelola kategori pelanggaran
-            </a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_tahun_ajaran.php" class="nav-link">
-                Kelola tahun ajaran
-            </a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="laporan.php" class="nav-link">Laporan</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_wali_kelas.php" class="nav-link active">
-                kelola wali kelas
-            </a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_penempatan_siswa.php" class="nav-link">
-                kelola penempatan siswa
-            </a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="rekap_point.php" class="nav-link">rekap poin</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="riwayat.php" class="nav-link">riwayat</a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="kelola_jenis_pelanggaran.php" class="nav-link">
-                kelola jenis pelanggaran
-            </a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="export_pelanggaran.php" class="nav-link">
-                export pelanggaran
-            </a>
-        </li>
-
-        <li class="nav-item mb-2">
-            <a href="tentang_saya.php" class="nav-link">About Me</a>
-        </li>
-
-        <hr class="text-secondary">
-
-        <li class="nav-item">
-            <a href="logout.php" class="nav-link text-danger">Logout</a>
-        </li>
-    </ul>
-</div>
-
-<main class="konten">
     <div class="panel-konten">
 
         <h2>Kelola Wali Kelas</h2>
-        <p class="deskripsi">Halaman pengelolaan data wali kelas sekolah.</p>
+        <p class="deskripsi">
+            Halaman pengelolaan data wali kelas sekolah.
+        </p>
 
-        <a href="dashboard.php" class="btn btn-secondary btn-sm">Kembali ke Dashboard</a>
-        <a href="tambah_wali_kelas.php" class="btn btn-primary btn-sm">+ Tambah Wali Kelas</a>
+        <a href="dashboard.php" class="btn btn-secondary btn-sm">
+            Kembali ke Dashboard
+        </a>
+
+        <a href="tambah_wali_kelas.php" class="btn btn-primary btn-sm">
+            + Tambah Wali Kelas
+        </a>
 
         <div class="toolbar">
+
             <input
                 type="text"
                 id="cariTabel"
@@ -339,18 +196,23 @@ if (!$query) {
 
             <div class="jumlah-data">
                 <label for="jumlahData" class="mb-0">Tampilkan:</label>
-                <select id="jumlahData" class="form-control form-control-sm">
+
+                <select id="jumlahData" class="form-select form-select-sm">
                     <option value="10" selected>10</option>
                     <option value="25">25</option>
                     <option value="50">50</option>
                     <option value="100">100</option>
                 </select>
+
                 <span>data</span>
             </div>
+
         </div>
 
         <div class="table-responsive">
+
             <table id="tabelWaliKelas" class="table table-bordered">
+
                 <thead>
                     <tr>
                         <th>No</th>
@@ -374,70 +236,100 @@ if (!$query) {
                         <tr>
                             <td><?= $no++ ?></td>
 
-                            <td><?= htmlspecialchars($row['tahun_ajaran'] ?? '-') ?></td>
+                            <td>
+                                <?= htmlspecialchars($row['tahun_ajaran'] ?? '-') ?>
+                            </td>
 
-                            <td><?= htmlspecialchars($row['nama_kelas'] ?? '-') ?></td>
+                            <td>
+                                <?= htmlspecialchars($row['nama_kelas'] ?? '-') ?>
+                            </td>
 
-                            <td><?= htmlspecialchars($row['nama_guru'] ?? '-') ?></td>
+                            <td>
+                                <?= htmlspecialchars($row['nama_guru'] ?? '-') ?>
+                            </td>
 
-                            <td><?= htmlspecialchars($row['tanggal_mulai'] ?? '-') ?></td>
+                            <td>
+                                <?= htmlspecialchars($row['tanggal_mulai'] ?? '-') ?>
+                            </td>
 
-                            <td><?= htmlspecialchars($row['tanggal_selesai'] ?? '-') ?></td>
+                            <td>
+                                <?= htmlspecialchars($row['tanggal_selesai'] ?? '-') ?>
+                            </td>
 
                             <td>
                                 <?php if ($row['status_aktif'] == 1) { ?>
-                                    <span class="badge-status status-aktif">Aktif</span>
+                                    <span class="badge-status status-aktif">
+                                        Aktif
+                                    </span>
                                 <?php } else { ?>
-                                    <span class="badge-status status-nonaktif">Tidak Aktif</span>
+                                    <span class="badge-status status-nonaktif">
+                                        Tidak Aktif
+                                    </span>
                                 <?php } ?>
                             </td>
 
                             <td>
                                 <a
-                                    href="edit_wali_kelas.php?id=<?= (int) $row['id'] ?>"
+                                    href="edit_wali_kelas.php?id=<?= (int)$row['id'] ?>"
                                     class="btn btn-primary btn-sm"
-                                >Edit</a>
+                                >
+                                    Edit
+                                </a>
 
                                 <a
-                                    href="hapus_wali_kelas.php?id=<?= (int) $row['id'] ?>"
+                                    href="hapus_wali_kelas.php?id=<?= (int)$row['id'] ?>"
                                     class="btn btn-danger btn-sm"
                                     onclick="return confirm('Yakin ingin menghapus data wali kelas ini?')"
-                                >Hapus</a>
+                                >
+                                    Hapus
+                                </a>
                             </td>
                         </tr>
+
                     <?php
                         }
                     } else {
                     ?>
+
                         <tr>
-                            <td colspan="8" class="text-center">Belum ada data wali kelas.</td>
+                            <td colspan="8" class="text-center">
+                                Belum ada data wali kelas.
+                            </td>
                         </tr>
+
                     <?php } ?>
                 </tbody>
+
             </table>
+
         </div>
 
         <div class="pagination-container">
             <small id="infoTabel"></small>
-
             <ul class="pagination" id="pagination"></ul>
         </div>
 
     </div>
+
 </main>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+
     const tabel = document.getElementById('tabelWaliKelas');
     const pencarian = document.getElementById('cariTabel');
     const jumlahData = document.getElementById('jumlahData');
     const info = document.getElementById('infoTabel');
     const pagination = document.getElementById('pagination');
 
-    const semuaBaris = Array.from(tabel.querySelectorAll('tbody tr'));
+    const semuaBaris = Array.from(
+        tabel.querySelectorAll('tbody tr')
+    ).filter(baris => baris.cells.length === 8);
+
     let halaman = 1;
 
     function tampilkanTabel() {
+
         const kata = pencarian.value.toLowerCase();
 
         const barisCocok = semuaBaris.filter(function (baris) {
@@ -446,7 +338,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const perHalaman = parseInt(jumlahData.value, 10);
         const totalData = barisCocok.length;
-        const totalHalaman = Math.max(1, Math.ceil(totalData / perHalaman));
+
+        const totalHalaman = Math.max(
+            1,
+            Math.ceil(totalData / perHalaman)
+        );
 
         if (halaman > totalHalaman) {
             halaman = totalHalaman;
@@ -475,12 +371,15 @@ document.addEventListener('DOMContentLoaded', function () {
         pagination.innerHTML = '';
 
         function buatTombol(teks, nomor, nonaktif, aktif) {
+
             const li = document.createElement('li');
+
             li.className = 'page-item' +
                 (nonaktif ? ' disabled' : '') +
                 (aktif ? ' active' : '');
 
             const tombol = document.createElement('button');
+
             tombol.type = 'button';
             tombol.className = 'page-link';
             tombol.textContent = teks;
@@ -495,7 +394,12 @@ document.addEventListener('DOMContentLoaded', function () {
             pagination.appendChild(li);
         }
 
-        buatTombol('Sebelumnya', halaman - 1, halaman === 1, false);
+        buatTombol(
+            'Sebelumnya',
+            halaman - 1,
+            halaman === 1,
+            false
+        );
 
         for (let i = 1; i <= totalHalaman; i++) {
             if (
@@ -504,11 +408,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 i === totalHalaman ||
                 Math.abs(i - halaman) <= 1
             ) {
-                buatTombol(String(i), i, false, i === halaman);
+                buatTombol(
+                    String(i),
+                    i,
+                    false,
+                    i === halaman
+                );
             }
         }
 
-        buatTombol('Berikutnya', halaman + 1, halaman >= totalHalaman, false);
+        buatTombol(
+            'Berikutnya',
+            halaman + 1,
+            halaman >= totalHalaman,
+            false
+        );
     }
 
     pencarian.addEventListener('input', function () {
@@ -522,6 +436,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     tampilkanTabel();
+
 });
 </script>
 
