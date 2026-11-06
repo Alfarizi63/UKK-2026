@@ -1,124 +1,168 @@
-
 <?php
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
+// Khusus admin
+if (($_SESSION['role'] ?? '') !== 'admin') {
+    header('Location: dashboard.php');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: kelola_siswa.php");
+    header('Location: kelola_siswa.php');
     exit;
 }
 
-$nis = trim($_POST['nis'] ?? '');
-$nisn = trim($_POST['nisn'] ?? '');
-$nama = trim($_POST['nama'] ?? '');
-$jenis_kelamin = trim($_POST['jenis_kelamin'] ?? '');
-$tanggal_lahir = trim($_POST['tanggal_lahir'] ?? '');
-$alamat = trim($_POST['alamat'] ?? '');
-$status_aktif = (int) ($_POST['status_aktif'] ?? 1);
+$nis             = trim($_POST['nis'] ?? '');
+$nisn            = trim($_POST['nisn'] ?? '');
+$nama            = trim($_POST['nama'] ?? '');
+$jenis_kelamin   = trim($_POST['jenis_kelamin'] ?? '');
+$tanggal_lahir   = trim($_POST['tanggal_lahir'] ?? '');
+$alamat          = trim($_POST['alamat'] ?? '');
+$status_aktif    = $_POST['status_aktif'] ?? '';
+$kelas_id        = (int)($_POST['kelas_id'] ?? 0);
+$tahun_ajaran_id = (int)($_POST['tahun_ajaran_id'] ?? 0);
 
-// Validasi data kosong
+// Validasi input
 if (
-    $nis === '' ||
-    $nisn === '' ||
-    $nama === '' ||
-    $jenis_kelamin === '' ||
-    $tanggal_lahir === '' ||
-    $alamat === ''
+    $nis === '' || $nisn === '' || $nama === '' ||
+    $jenis_kelamin === '' || $tanggal_lahir === '' ||
+    $alamat === '' || $kelas_id <= 0 || $tahun_ajaran_id <= 0 ||
+    !in_array($status_aktif, ['0', '1'], true)
 ) {
-    echo "<script>alert('Semua data wajib diisi!'); history.back();</script>";
+    $_SESSION['pesan'] = 'Semua data wajib diisi.';
+    header('Location: kelola_siswa.php');
     exit;
 }
 
-// Validasi NIS: angka, maksimal 9 digit
 if (!preg_match('/^[0-9]{1,9}$/', $nis)) {
-    echo "<script>alert('NIS harus berupa angka dan maksimal 9 digit!'); history.back();</script>";
+    $_SESSION['pesan'] = 'NIS harus berupa angka maksimal 9 digit.';
+    header('Location: kelola_siswa.php');
     exit;
 }
 
-// Validasi NISN: harus tepat 10 digit
 if (!preg_match('/^[0-9]{10}$/', $nisn)) {
-    echo "<script>alert('NISN harus tepat 10 digit!'); history.back();</script>";
+    $_SESSION['pesan'] = 'NISN harus tepat 10 digit angka.';
+    header('Location: kelola_siswa.php');
     exit;
 }
 
-// Validasi jenis kelamin
 if (!in_array($jenis_kelamin, ['L', 'P'], true)) {
-    echo "<script>alert('Jenis kelamin tidak valid!'); history.back();</script>";
+    $_SESSION['pesan'] = 'Jenis kelamin tidak valid.';
+    header('Location: kelola_siswa.php');
     exit;
 }
 
-// Validasi tanggal
-$tanggal = DateTime::createFromFormat('Y-m-d', $tanggal_lahir);
-
-if (!$tanggal || $tanggal->format('Y-m-d') !== $tanggal_lahir) {
-    echo "<script>alert('Format tanggal lahir tidak valid!'); history.back();</script>";
+$date = DateTime::createFromFormat('Y-m-d', $tanggal_lahir);
+if (!$date || $date->format('Y-m-d') !== $tanggal_lahir) {
+    $_SESSION['pesan'] = 'Tanggal lahir tidak valid.';
+    header('Location: kelola_siswa.php');
     exit;
 }
 
-// Validasi status
-if (!in_array($status_aktif, [0, 1], true)) {
-    echo "<script>alert('Status siswa tidak valid!'); history.back();</script>";
-    exit;
-}
-
-// Cek NIS duplikat
-$stmt = mysqli_prepare($koneksi, "SELECT id FROM t_siswa WHERE nis = ?");
-mysqli_stmt_bind_param($stmt, "s", $nis);
-mysqli_stmt_execute($stmt);
-mysqli_stmt_store_result($stmt);
-
-if (mysqli_stmt_num_rows($stmt) > 0) {
-    mysqli_stmt_close($stmt);
-    echo "<script>alert('NIS sudah digunakan siswa lain!'); history.back();</script>";
-    exit;
-}
-mysqli_stmt_close($stmt);
-
-// Cek NISN duplikat
-$stmt = mysqli_prepare($koneksi, "SELECT id FROM t_siswa WHERE nisn = ?");
-mysqli_stmt_bind_param($stmt, "s", $nisn);
-mysqli_stmt_execute($stmt);
-mysqli_stmt_store_result($stmt);
-
-if (mysqli_stmt_num_rows($stmt) > 0) {
-    mysqli_stmt_close($stmt);
-    echo "<script>alert('NISN sudah digunakan siswa lain!'); history.back();</script>";
-    exit;
-}
-mysqli_stmt_close($stmt);
-
-// Simpan data
-$sql = "INSERT INTO t_siswa
-        (nis, nisn, nama, jenis_kelamin, tanggal_lahir, alamat, status_aktif)
-        VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-$stmt = mysqli_prepare($koneksi, $sql);
-
-if (!$stmt) {
-    die("Query gagal disiapkan: " . mysqli_error($koneksi));
-}
-
-mysqli_stmt_bind_param(
-    $stmt,
-    "ssssssi",
-    $nis,
-    $nisn,
-    $nama,
-    $jenis_kelamin,
-    $tanggal_lahir,
-    $alamat,
-    $status_aktif
+// Pastikan kelas dan tahun ajaran memang aktif
+$stmt = $koneksi->prepare(
+    "SELECT id FROM t_kelas WHERE id = ? AND status_aktif = 1"
 );
+$stmt->bind_param("i", $kelas_id);
+$stmt->execute();
+$kelasValid = $stmt->get_result()->num_rows > 0;
+$stmt->close();
 
-if (mysqli_stmt_execute($stmt)) {
-    mysqli_stmt_close($stmt);
-    header("Location: kelola_siswa.php?pesan=berhasil");
+$stmt = $koneksi->prepare(
+    "SELECT id FROM t_tahun_ajaran WHERE id = ? AND status_aktif = 1"
+);
+$stmt->bind_param("i", $tahun_ajaran_id);
+$stmt->execute();
+$tahunValid = $stmt->get_result()->num_rows > 0;
+$stmt->close();
+
+if (!$kelasValid || !$tahunValid) {
+    $_SESSION['pesan'] = 'Kelas atau tahun ajaran tidak aktif/tidak ditemukan.';
+    header('Location: kelola_siswa.php');
     exit;
 }
 
-$error = mysqli_stmt_error($stmt);
-mysqli_stmt_close($stmt);
+// Cek NIS dan NISN duplikat
+$stmt = $koneksi->prepare(
+    "SELECT id FROM t_siswa WHERE nis = ? OR nisn = ? LIMIT 1"
+);
+$stmt->bind_param("ss", $nis, $nisn);
+$stmt->execute();
+$duplikat = $stmt->get_result()->num_rows > 0;
+$stmt->close();
 
-echo "Gagal menambahkan siswa: " . htmlspecialchars($error);
-echo "<br><a href='kelola_siswa.php'>Kembali</a>";
-?>
+if ($duplikat) {
+    $_SESSION['pesan'] = 'NIS atau NISN sudah digunakan siswa lain.';
+    header('Location: kelola_siswa.php');
+    exit;
+}
+
+// Simpan identitas siswa dan penempatan kelas dalam satu transaksi
+$koneksi->begin_transaction();
+
+try {
+    $stmt = $koneksi->prepare(
+        "INSERT INTO t_siswa
+        (nis, nisn, nama, jenis_kelamin, tanggal_lahir, alamat, status_aktif)
+        VALUES (?, ?, ?, ?, ?, ?, ?)"
+    );
+    $status = (int)$status_aktif;
+    $stmt->bind_param(
+        "ssssssi",
+        $nis,
+        $nisn,
+        $nama,
+        $jenis_kelamin,
+        $tanggal_lahir,
+        $alamat,
+        $status
+    );
+    $stmt->execute();
+    $siswa_id = $koneksi->insert_id;
+    $stmt->close();
+
+    $tanggal_mulai = date('Y-m-d');
+
+    // Ambil tanggal selesai dari tahun ajaran yang dipilih
+    $stmt = $koneksi->prepare(
+        "SELECT tanggal_selesai
+         FROM t_tahun_ajaran
+         WHERE id = ? AND status_aktif = 1"
+    );
+    $stmt->bind_param("i", $tahun_ajaran_id);
+    $stmt->execute();
+    $dataTahun = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$dataTahun || empty($dataTahun['tanggal_selesai'])) {
+        throw new Exception('Tanggal selesai pada tahun ajaran belum diisi.');
+    }
+
+    $tanggal_selesai = $dataTahun['tanggal_selesai'];
+
+    $stmt = $koneksi->prepare(
+        "INSERT INTO t_kelas_siswa
+        (siswa_id, tahun_ajaran_id, kelas_id, tanggal_mulai, tanggal_selesai, status_aktif)
+        VALUES (?, ?, ?, ?, ?, 1)"
+    );
+    $stmt->bind_param(
+        "iiiss",
+        $siswa_id,
+        $tahun_ajaran_id,
+        $kelas_id,
+        $tanggal_mulai,
+        $tanggal_selesai
+    );
+    $stmt->execute();
+    $stmt->close();
+
+    $koneksi->commit();
+    $_SESSION['pesan'] = 'Data siswa berhasil ditambahkan beserta kelas dan tahun ajarannya.';
+} catch (Throwable $e) {
+    $koneksi->rollback();
+    $_SESSION['pesan'] = 'Gagal menyimpan data siswa: ' . $e->getMessage();
+}
+
+header('Location: kelola_siswa.php');
+exit;

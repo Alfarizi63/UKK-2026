@@ -47,56 +47,12 @@ $foto = 'alfarizi.jpg';
             color: #343a40;
         }
 
-        /* SIDEBAR */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: 273px;
-            padding: 15px;
-            background: #212529;
-            color: white;
-            overflow-y: auto;
-            z-index: 1030;
-        }
-
-        .sidebar h4 {
-            font-size: 21px;
-            font-weight: bold;
-            margin-bottom: 25px;
-        }
-
-        .sidebar .nav-link {
-            display: block;
-            padding: 10px 14px;
-            margin-bottom: 5px;
-            border-radius: 5px;
-            color: white;
-            font-size: 14px;
-            text-decoration: none;
-        }
-
-        .sidebar .nav-link:hover {
-            background: #343a40;
-            color: white;
-        }
-
-        .sidebar .nav-link.active {
-            background: #007bff;
-            color: white;
-        }
-
-        .sidebar .nav-link i {
-            margin-right: 8px;
-        }
-
         /* KONTEN */
         .konten {
-            margin-left: 273px;
+            margin-left: 250px;
             padding: 25px 28px;
             min-height: 100vh;
-            width: calc(100% - 273px);
+            width: calc(100% - 250px);
         }
 
         .judul {
@@ -193,13 +149,6 @@ $foto = 'alfarizi.jpg';
 
         /* RESPONSIVE */
         @media (max-width: 767px) {
-            .sidebar {
-                position: relative;
-                width: 100%;
-                height: auto;
-                min-height: auto;
-            }
-
             .konten {
                 margin-left: 0;
                 width: 100%;
@@ -211,150 +160,9 @@ $foto = 'alfarizi.jpg';
 
 <body>
 
-<div class="container-fluid">
-    <div class="row">
+<?php include 'includes/sidebar.php'; ?>
 
-        <!-- SIDEBAR -->
-        <aside class="sidebar">
-
-            <h4>My Website</h4>
-
-            <ul class="nav nav-pills flex-column">
-
-                <li class="nav-item mb-2">
-                    <a href="dashboard.php" class="nav-link">
-                        Dashboard
-                    </a>
-                </li>
-
-                <?php if ($role === 'admin'): ?>
-
-                    <li class="nav-item mb-2">
-                        <a href="kelola_siswa.php" class="nav-link">
-                            Data Siswa
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="kelola_guru.php" class="nav-link">
-                            Data Guru
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="kelola_kelas.php" class="nav-link">
-                            Kelas
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="kelola_kategori_pelanggaran.php" class="nav-link">
-                            Kelola Kategori Pelanggaran
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="kelola_tahun_ajaran.php" class="nav-link">
-                            Kelola Tahun Ajaran
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="laporan.php" class="nav-link">
-                            Laporan
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="kelola_wali_kelas.php" class="nav-link">
-                            Kelola Wali Kelas
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="kelola_penempatan_siswa.php" class="nav-link">
-                            Kelola Penempatan Siswa
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="rekap_point.php" class="nav-link">
-                            Rekap Poin
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="riwayat.php" class="nav-link">
-                            Riwayat
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="kelola_jenis_pelanggaran.php" class="nav-link">
-                            Kelola Jenis Pelanggaran
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="export_pelanggaran.php" class="nav-link">
-                            Export Pelanggaran
-                        </a>
-                    </li>
-
-                <?php elseif ($role === 'guru'): ?>
-
-                    <li class="nav-item mb-2">
-                        <a href="catatan.php" class="nav-link">
-                            Catatan
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="tindakan.php" class="nav-link">
-                            Tindakan
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="laporan.php" class="nav-link">
-                            Laporan
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="riwayat.php" class="nav-link">
-                            Riwayat
-                        </a>
-                    </li>
-
-                    <li class="nav-item mb-2">
-                        <a href="rekap_point.php" class="nav-link">
-                            Rekap Point
-                        </a>
-                    </li>
-
-                <?php endif; ?>
-
-                <li class="nav-item mb-2">
-                    <a href="tentang_saya.php" class="nav-link active">
-                        About Me
-                    </a>
-                </li>
-
-                <hr class="bg-secondary">
-
-                <li class="nav-item">
-                    <a href="logout.php" class="nav-link text-danger">
-                        Logout
-                    </a>
-                </li>
-
-            </ul>
-
-        </aside>
-
-        <!-- KONTEN UTAMA -->
-        <main class="konten">
+<main class="konten">
 
             <h2 class="judul">About Me</h2>
 
@@ -519,9 +327,6 @@ $foto = 'alfarizi.jpg';
             </p>
 
         </main>
-
-    </div>
-</div>
 
 </body>
 </html>

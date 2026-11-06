@@ -16,6 +16,32 @@ $query = mysqli_query($koneksi, $sql);
 if (!$query) {
     die("Gagal mengambil data siswa: " . mysqli_error($koneksi));
 }
+
+// Ambil kelas aktif
+$queryKelas = mysqli_query(
+    $koneksi,
+    "SELECT id, nama, tingkat, jurusan
+     FROM t_kelas
+     WHERE status_aktif = 1
+     ORDER BY tingkat, jurusan, nama"
+);
+
+if (!$queryKelas) {
+    die("Gagal mengambil data kelas: " . mysqli_error($koneksi));
+}
+
+// Ambil tahun ajaran aktif
+$queryTahun = mysqli_query(
+    $koneksi,
+    "SELECT id, nama
+     FROM t_tahun_ajaran
+     WHERE status_aktif = 1
+     ORDER BY id DESC"
+);
+
+if (!$queryTahun) {
+    die("Gagal mengambil tahun ajaran: " . mysqli_error($koneksi));
+}
 ?>
 
 <!DOCTYPE html>
@@ -179,6 +205,32 @@ if (!$query) {
                         class="form-control" required>
                     <option value="1">Aktif</option>
                     <option value="0">Tidak Aktif</option>
+                </select>
+            </div>
+
+            <div class="form-group col-md-6 mb-3">
+                <label>Kelas</label>
+                <select name="kelas_id" class="form-control" required>
+                    <option value="">-- Pilih Kelas --</option>
+                    <?php while ($kelas = mysqli_fetch_assoc($queryKelas)): ?>
+                        <option value="<?= (int)$kelas['id'] ?>">
+                            <?= htmlspecialchars($kelas['nama']) ?>
+                            (<?= htmlspecialchars($kelas['tingkat']) ?> -
+                            <?= htmlspecialchars($kelas['jurusan']) ?>)
+                        </option>
+                    <?php endwhile; ?>
+                </select>
+            </div>
+
+            <div class="form-group col-md-6 mb-3">
+                <label>Tahun Ajaran</label>
+                <select name="tahun_ajaran_id" class="form-control" required>
+                    <option value="">-- Pilih Tahun Ajaran --</option>
+                    <?php while ($tahun = mysqli_fetch_assoc($queryTahun)): ?>
+                        <option value="<?= (int)$tahun['id'] ?>">
+                            <?= htmlspecialchars($tahun['nama']) ?>
+                        </option>
+                    <?php endwhile; ?>
                 </select>
             </div>
 

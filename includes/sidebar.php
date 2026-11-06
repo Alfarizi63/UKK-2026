@@ -1,6 +1,15 @@
+
 <?php
 $role = $_SESSION['role'] ?? '';
 $halaman = basename($_SERVER['PHP_SELF']);
+
+// Pemetaan halaman agar menu tetap aktif
+$halaman_alias = [
+    'tambah_kategori_pelanggaran.php' => 'kelola_kategori_pelanggaran.php',
+    'edit_kategori_pelanggaran.php' => 'kelola_kategori_pelanggaran.php'
+];
+
+$halaman_aktif = $halaman_alias[$halaman] ?? $halaman;
 
 $menu_admin = [
     ['Dashboard', 'dashboard.php'],
@@ -12,11 +21,8 @@ $menu_admin = [
     ['Laporan', 'laporan.php'],
     ['Wali Kelas', 'kelola_wali_kelas.php'],
     ['Penempatan Siswa', 'kelola_penempatan_siswa.php'],
-    ['Rekap Poin', 'rekap_point.php'],
-    ['Riwayat', 'riwayat.php'],
     ['Jenis Pelanggaran', 'kelola_jenis_pelanggaran.php'],
     ['Export Pelanggaran', 'export_pelanggaran.php'],
-    ['Catatan Pelanggaran', 'catatan_pelanggaran.php'],
     ['About Me', 'tentang_saya.php']
 ];
 
@@ -46,7 +52,7 @@ if ($role === 'admin') {
         <?php foreach ($menu as $item) : ?>
             <li>
                 <a href="<?= htmlspecialchars($item[1]) ?>"
-                   class="<?= $halaman === $item[1] ? 'active' : '' ?>">
+                   class="<?= $halaman_aktif === $item[1] ? 'active' : '' ?>">
                     <?= htmlspecialchars($item[0]) ?>
                 </a>
             </li>

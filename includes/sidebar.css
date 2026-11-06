@@ -1,8 +1,15 @@
+
+/* ==============================
+   BODY
+============================== */
 body {
     background: #f8f9fa;
     margin: 0;
 }
 
+/* ==============================
+   SIDEBAR
+============================== */
 .sidebar {
     position: fixed;
     top: 0;
@@ -17,13 +24,17 @@ body {
     box-sizing: border-box;
 }
 
+/* Judul Sidebar */
 .sidebar-title {
-    color: white;
+    color: #ffffff;
     font-weight: bold;
     margin-bottom: 25px;
     padding-left: 10px;
 }
 
+/* ==============================
+   MENU SIDEBAR
+============================== */
 .sidebar-menu {
     list-style: none;
     padding: 0;
@@ -34,29 +45,40 @@ body {
     margin-bottom: 6px;
 }
 
+/* Menu Normal */
 .sidebar-menu a {
     display: flex;
     align-items: center;
-    min-height: 42px;
+    min-height: 44px;
     padding: 10px 14px;
     box-sizing: border-box;
-    color: white;
+    color: #dee2e6;
     text-decoration: none;
     font-size: 14px;
-    border-radius: 5px;
-    transition: background-color 0.2s;
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
 }
 
+/* Efek Hover */
 .sidebar-menu a:hover {
     background: #495057;
-    color: white;
+    color: #ffffff;
+    padding-left: 18px;
 }
 
+/* Menu Aktif */
 .sidebar-menu a.active {
     background: #007bff;
-    color: white;
+    color: #ffffff;
+    font-weight: 600;
+    border-left: 3px solid #ffffff;
+    box-shadow: 0 3px 8px rgba(0, 123, 255, 0.25);
 }
 
+/* ==============================
+   LOGOUT
+============================== */
 .sidebar-logout {
     border-top: 1px solid #6c757d;
     margin-top: 20px;
@@ -68,28 +90,39 @@ body {
     padding: 10px 14px;
     color: #ff6b6b;
     text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.2s ease;
 }
 
 .sidebar-logout a:hover {
     background: #495057;
-    border-radius: 5px;
+    color: #ff8787;
 }
 
+/* ==============================
+   KONTEN UTAMA
+============================== */
 .main-content {
     margin-left: 250px;
     padding: 25px;
     min-width: 0;
+    box-sizing: border-box;
 }
 
+/* ==============================
+   RESPONSIVE / MOBILE
+============================== */
 @media (max-width: 767px) {
     .sidebar {
         position: relative;
         width: 100%;
         height: auto;
+        bottom: auto;
     }
 
     .main-content {
         margin-left: 0;
         padding: 15px;
+        width: 100%;
     }
 }
