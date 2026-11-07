@@ -53,76 +53,70 @@ if (!$queryTahun) {
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <style>
-        body {
-            background: #f8f9fa;
-        }
+ <style>   
+body {
+    background: #f8f9fa;
+    font-family: Arial, sans-serif;
+}
 
-        .main-content {
-            margin-left: 250px;
-            padding: 25px;
-            min-width: 0;
-        }
+.main-content {
+    margin-left: 250px;
+    padding: 25px;
+    min-width: 0;
+}
 
-        .form-tambah {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,.06);
-        }
+.form-tambah {
+    background: white;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+    max-width: 850px;
+}
 
-        .tabel-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            background: white;
-            border-radius: 6px;
-        }
+.page-title {
+    font-weight: 700;
+    color: #343a40;
+}
 
-        #tabelSiswa {
-            width: 100%;
-            margin-bottom: 0;
-        }
+.form-label {
+    font-weight: 600;
+    margin-bottom: 7px;
+}
 
-        #tabelSiswa th {
-            background: #212529;
-            color: white;
-            white-space: nowrap;
-            cursor: pointer;
-        }
+.form-control,
+.form-select {
+    padding: 10px 12px;
+    border-radius: 7px;
+}
 
-        #tabelSiswa th,
-        #tabelSiswa td {
-            padding: 10px;
-            vertical-align: middle;
-        }
+.form-control:focus,
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,.12);
+}
 
-        .kontrol-tabel {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin: 15px 0;
-        }
+.btn {
+    padding: 9px 18px;
+    border-radius: 7px;
+}
 
-        .kontrol-tabel input {
-            max-width: 350px;
-        }
+.form-section {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+}
 
-        .paginasi {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-            margin: 15px 0;
-        }
+@media(max-width: 767px) {
+    .main-content {
+        margin-left: 0;
+        padding: 15px;
+    }
 
-        @media (max-width: 767px) {
-            .main-content {
-                margin-left: 0;
-                padding: 15px;
-            }
-        }
-    </style>
+    .form-tambah {
+        padding: 18px;
+    }
+}
+</style>
 </head>
 
 <body>
@@ -152,19 +146,19 @@ if (!$queryTahun) {
         <div class="row">
 
             <div class="form-group col-md-6 mb-3">
-                <label>NIS</label>
-                <input type="text" name="nis"
-                       id="nis"
-                       class="form-control"
-                       maxlength="20"
-                       pattern="[0-9]{1,9}"
-                       inputmode="numeric"
-                       required>
+    <label>NIS</label>
+    <input type="text" name="nis"
+           id="nis"
+           class="form-control"
+           maxlength="15"
+           pattern="[0-9]{1,15}"
+           inputmode="numeric"
+           required>
 
-                <small id="peringatanNIS" class="text-danger">
-                    NIS maksimal 9 digit dan hanya boleh menggunakan angka.
-                </small>
-            </div>
+    <small id="peringatanNIS" class="text-danger">
+        NIS maksimal 15 digit dan hanya boleh menggunakan angka.
+    </small>
+</div>
 
             <div class="form-group col-md-6 mb-3">
                 <label>NISN</label>
@@ -369,7 +363,7 @@ if (!$queryTahun) {
 </main>
 
 <script>
-// Validasi NIS
+// Validasi NIS maksimal 15 digit
 const inputNIS = document.getElementById('nis');
 const peringatanNIS = document.getElementById('peringatanNIS');
 const formSiswa = document.getElementById('formSiswa');
@@ -377,23 +371,21 @@ const formSiswa = document.getElementById('formSiswa');
 function validasiNIS() {
     const nilai = inputNIS.value;
 
-    if (nilai.length > 9) {
-        peringatanNIS.textContent = 'Peringatan: NIS tidak boleh lebih dari 9 digit!';
-        peringatanNIS.style.display = 'block';
+    if (!/^[0-9]{1,15}$/.test(nilai)) {
+        peringatanNIS.textContent =
+            'NIS wajib berupa angka dan maksimal 15 digit!';
+
         inputNIS.classList.add('is-invalid');
-        inputNIS.setCustomValidity('NIS maksimal 9 digit.');
+        inputNIS.setCustomValidity(
+            'NIS wajib berupa angka dan maksimal 15 digit.'
+        );
+
         return false;
     }
 
-    if (nilai !== '' && !/^[0-9]+$/.test(nilai)) {
-        peringatanNIS.textContent = 'NIS hanya boleh berisi angka!';
-        peringatanNIS.style.display = 'block';
-        inputNIS.classList.add('is-invalid');
-        inputNIS.setCustomValidity('NIS hanya boleh berisi angka.');
-        return false;
-    }
+    peringatanNIS.textContent =
+        'NIS maksimal 15 digit dan hanya boleh menggunakan angka.';
 
-    peringatanNIS.textContent = 'NIS maksimal 9 digit dan hanya boleh menggunakan angka.';
     inputNIS.classList.remove('is-invalid');
     inputNIS.setCustomValidity('');
 

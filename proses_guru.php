@@ -1,15 +1,8 @@
-```php
 <?php
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// ==========================================
-// CEK LOGIN DAN HAK AKSES
-// ==========================================
+// Khusus admin
 if (($_SESSION['role'] ?? '') !== 'admin') {
     header('Location: dashboard.php');
     exit;
@@ -23,167 +16,183 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $aksi = $_POST['aksi'] ?? '';
 
 /*
-|--------------------------------------------------------------------------
-| PROSES HAPUS GURU
-|--------------------------------------------------------------------------
-*/
-if ($aksi === 'hapus') {
-    $id = (int) ($_POST['id'] ?? 0);
+ * TAMBAH GURU
+ * Akun t_users dibuat otomatis, lalu user_id disimpan ke t_guru.
+ */
+if ($aksi === 'tambah') {
+    $nip       = trim($_POST['nip'] ?? '');
+    $nama      = trim($_POST['nama'] ?? '');
+    $email     = trim($_POST['email'] ?? '');
+    $password  = $_POST['password'] ?? '';
+    $konfirmasi_password = $_POST['konfirmasi_password'] ?? '';
+    $status    = trim($_POST['status_aktif'] ?? 'aktif');
 
-    if ($id <= 0) {
-        $_SESSION['pesan'] = 'ID guru tidak valid!';
+    // Validasi
+    if ($nip === '' || $nama === '' || $email === '' || $password === '') {
+        $_SESSION['pesan_error'] = 'Semua data wajib diisi.';
         header('Location: kelola_guru.php');
         exit;
     }
 
-    try {
-        $stmt = $koneksi->prepare(
-            "DELETE FROM t_guru WHERE id = ?"
-        );
-
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-
-        if ($stmt->affected_rows > 0) {
-            $_SESSION['pesan'] = 'Data guru berhasil dihapus!';
-        } else {
-            $_SESSION['pesan'] = 'Data guru tidak ditemukan!';
-        }
-
-        $stmt->close();
-
-    } catch (mysqli_sql_exception $e) {
-        error_log('Hapus guru: ' . $e->getMessage());
-
-        $_SESSION['pesan'] =
-            'Gagal menghapus guru. Periksa relasi database.';
-    }
-
-    header('Location: kelola_guru.php');
-    exit;
-}
-
-/*
-|--------------------------------------------------------------------------
-| PROSES TAMBAH GURU
-|--------------------------------------------------------------------------
-*/
-if ($aksi === 'tambah') {
-    $nip = trim($_POST['nip'] ?? '');
-    $nama = trim($_POST['nama'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $user_id = (int) ($_POST['user_id'] ?? 0);
-    $status_aktif = (int) ($_POST['status_aktif'] ?? 1);
-
-    // Validasi input
-    if ($nip === '' || $nama === '' || $email === '') {
-        $_SESSION['pesan'] =
-            'NIP, nama, dan email wajib diisi!';
+    if (!preg_match('/^[0-9]{1,18}$/', $nip)) {
+        $_SESSION['pesan_error'] = 'NIP harus berupa angka dengan maksimal 18 digit.';
         header('Location: kelola_guru.php');
         exit;
     }
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $_SESSION['pesan'] = 'Format email tidak valid!';
+        $_SESSION['pesan_error'] = 'Format email tidak valid.';
         header('Location: kelola_guru.php');
         exit;
     }
 
-    if ($user_id <= 0) {
-        $_SESSION['pesan'] = 'Silakan pilih akun guru!';
+    if (strlen($password) < 8) {
+        $_SESSION['pesan_error'] = 'Password minimal 8 karakter.';
         header('Location: kelola_guru.php');
         exit;
     }
 
-    if (!in_array($status_aktif, [0, 1], true)) {
-        $_SESSION['pesan'] = 'Status aktif tidak valid!';
+    if ($password !== $konfirmasi_password) {
+        $_SESSION['pesan_error'] = 'Konfirmasi password tidak sama.';
         header('Location: kelola_guru.php');
         exit;
     }
+
+    if (!in_array($status, ['aktif', 'nonaktif'], true)) {
+        $status = 'aktif';
+    }
+
+    // Pastikan NIP belum digunakan
+    $cekNip = $koneksi->prepare("SELECT id FROM t_guru WHERE nip = ? LIMIT 1");
+    if (!$cekNip) {
+        $_SESSION['pesan_error'] = 'Gagal memeriksa NIP: ' . $koneksi->error;
+        header('Location: kelola_guru.php');
+        exit;
+    }
+
+    $cekNip->bind_param('s', $nip);
+    $cekNip->execute();
+    $hasilNip = $cekNip->get_result();
+
+    if ($hasilNip->num_rows > 0) {
+        $cekNip->close();
+        $_SESSION['pesan_error'] = 'NIP sudah terdaftar.';
+        header('Location: kelola_guru.php');
+        exit;
+    }
+    $cekNip->close();
+
+    // Pastikan email belum digunakan akun lain
+    $cekEmail = $koneksi->prepare("SELECT id FROM t_users WHERE email = ? LIMIT 1");
+    if (!$cekEmail) {
+        $_SESSION['pesan_error'] = 'Gagal memeriksa email: ' . $koneksi->error;
+        header('Location: kelola_guru.php');
+        exit;
+    }
+
+    $cekEmail->bind_param('s', $email);
+    $cekEmail->execute();
+    $hasilEmail = $cekEmail->get_result();
+
+    if ($hasilEmail->num_rows > 0) {
+        $cekEmail->close();
+        $_SESSION['pesan_error'] = 'Email sudah digunakan oleh akun lain.';
+        header('Location: kelola_guru.php');
+        exit;
+    }
+    $cekEmail->close();
 
     try {
-        // Pastikan akun yang dipilih memang akun guru.
-        $cek = $koneksi->prepare(
-            "SELECT id
-             FROM t_users
-             WHERE id = ? AND role = 'guru'"
+        $koneksi->begin_transaction();
+
+        // Buat akun guru otomatis
+        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+        $role = 'guru';
+
+        $stmtUser = $koneksi->prepare(
+            "INSERT INTO t_users (name, email, password, role) VALUES (?, ?, ?, ?)"
         );
 
-        $cek->bind_param('i', $user_id);
-        $cek->execute();
-
-        $akunAda = $cek->get_result()->num_rows > 0;
-        $cek->close();
-
-        if (!$akunAda) {
-            $_SESSION['pesan'] =
-                'Akun guru tidak ditemukan di tabel t_users!';
-            header('Location: kelola_guru.php');
-            exit;
+        if (!$stmtUser) {
+            throw new Exception('Gagal menyiapkan akun guru: ' . $koneksi->error);
         }
 
-        // Pastikan akun belum dipakai data guru lain.
-        $cek = $koneksi->prepare(
-            "SELECT id FROM t_guru WHERE user_id = ?"
-        );
+        $stmtUser->bind_param('ssss', $nama, $email, $passwordHash, $role);
 
-        $cek->bind_param('i', $user_id);
-        $cek->execute();
-
-        $akunTerpakai = $cek->get_result()->num_rows > 0;
-        $cek->close();
-
-        if ($akunTerpakai) {
-            $_SESSION['pesan'] =
-                'Akun tersebut sudah terhubung dengan data guru!';
-            header('Location: kelola_guru.php');
-            exit;
+        if (!$stmtUser->execute()) {
+            throw new Exception('Gagal membuat akun guru: ' . $stmtUser->error);
         }
 
-        // Simpan data ke tabel t_guru.
-        $stmt = $koneksi->prepare(
+        $userId = $koneksi->insert_id;
+        $stmtUser->close();
+
+        // Simpan data guru dan hubungkan dengan akun yang baru dibuat
+        $stmtGuru = $koneksi->prepare(
             "INSERT INTO t_guru
-                (nip, nama, email, status_aktif, user_id,
-                 created_at, updated_at)
+                (nip, nama, email, status_aktif, user_id, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, NOW(), NOW())"
         );
 
-        $stmt->bind_param(
-            'sssii',
-            $nip,
-            $nama,
-            $email,
-            $status_aktif,
-            $user_id
-        );
-
-        $stmt->execute();
-        $stmt->close();
-
-        $_SESSION['pesan'] =
-            'Data guru berhasil ditambahkan!';
-
-    } catch (mysqli_sql_exception $e) {
-        error_log('Tambah guru: ' . $e->getMessage());
-
-        if ($e->getCode() === 1062) {
-            $_SESSION['pesan'] =
-                'NIP, email, atau akun guru sudah terdaftar!';
-        } else {
-            $_SESSION['pesan'] =
-                'Gagal menambahkan guru. Periksa log error PHP.';
+        if (!$stmtGuru) {
+            throw new Exception('Gagal menyiapkan data guru: ' . $koneksi->error);
         }
+
+        $stmtGuru->bind_param('ssssi', $nip, $nama, $email, $status, $userId);
+
+        if (!$stmtGuru->execute()) {
+            throw new Exception('Gagal menyimpan data guru: ' . $stmtGuru->error);
+        }
+
+        $stmtGuru->close();
+        $koneksi->commit();
+
+        $_SESSION['pesan_sukses'] = 'Data guru dan akun login berhasil ditambahkan.';
+        header('Location: kelola_guru.php');
+        exit;
+
+    } catch (Throwable $e) {
+        $koneksi->rollback();
+        $_SESSION['pesan_error'] = 'Gagal menambahkan guru: ' . $e->getMessage();
+        header('Location: kelola_guru.php');
+        exit;
+    }
+}
+
+/*
+ * HAPUS GURU
+ * Hapus data guru saja agar akun t_users tidak terhapus tanpa konfirmasi.
+ */
+if ($aksi === 'hapus') {
+    $id = (int) ($_POST['id'] ?? 0);
+
+    if ($id <= 0) {
+        $_SESSION['pesan_error'] = 'ID guru tidak valid.';
+        header('Location: kelola_guru.php');
+        exit;
     }
 
+    $stmt = $koneksi->prepare("DELETE FROM t_guru WHERE id = ?");
+    if (!$stmt) {
+        $_SESSION['pesan_error'] = 'Gagal menyiapkan penghapusan: ' . $koneksi->error;
+        header('Location: kelola_guru.php');
+        exit;
+    }
+
+    $stmt->bind_param('i', $id);
+
+    if ($stmt->execute()) {
+        $_SESSION['pesan_sukses'] = 'Data guru berhasil dihapus.';
+    } else {
+        $_SESSION['pesan_error'] = 'Gagal menghapus data guru: ' . $stmt->error;
+    }
+
+    $stmt->close();
     header('Location: kelola_guru.php');
     exit;
 }
 
-// ==========================================
-// AKSI TIDAK DIKENALI
-// ==========================================
-$_SESSION['pesan'] = 'Aksi tidak dikenali!';
+// Aksi tidak dikenal
+$_SESSION['pesan_error'] = 'Aksi tidak dikenali.';
 header('Location: kelola_guru.php');
 exit;
 ?>
-```

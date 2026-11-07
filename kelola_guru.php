@@ -1,4 +1,3 @@
-
 <?php
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
@@ -22,23 +21,10 @@ $query = mysqli_query($koneksi, $sql);
 if (!$query) {
     die("Query data guru gagal: " . mysqli_error($koneksi));
 }
-
-// Ambil akun yang role-nya guru
-$sql_user = "SELECT id, name, email
-             FROM t_users
-             WHERE role = 'guru'
-             ORDER BY name ASC";
-
-$query_user = mysqli_query($koneksi, $sql_user);
-
-if (!$query_user) {
-    die("Query akun guru gagal: " . mysqli_error($koneksi));
-}
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -148,64 +134,69 @@ if (!$query_user) {
         <div class="row">
 
             <div class="col-md-6 mb-3">
-                <label class="form-label">NIP</label>
+                <label for="nip" class="form-label">NIP</label>
                 <input type="text"
                        name="nip"
                        id="nip"
                        class="form-control"
-                       maxlength="20"
+                       maxlength="18"
                        pattern="[0-9]{1,18}"
                        inputmode="numeric"
                        required>
 
-                <small id="peringatanNIP" class="text-danger">
+                <small id="peringatanNIP" class="text-muted">
                     NIP maksimal 18 digit dan hanya boleh menggunakan angka.
                 </small>
             </div>
 
             <div class="col-md-6 mb-3">
-                <label class="form-label">Nama Guru</label>
+                <label for="nama" class="form-label">Nama Guru</label>
                 <input type="text"
                        name="nama"
+                       id="nama"
                        class="form-control"
                        required>
             </div>
 
             <div class="col-md-6 mb-3">
-                <label class="form-label">Email</label>
+                <label for="email" class="form-label">Email</label>
                 <input type="email"
                        name="email"
+                       id="email"
                        class="form-control"
+                       autocomplete="email"
                        required>
             </div>
 
             <div class="col-md-6 mb-3">
-                <label class="form-label">Akun Guru</label>
-
-                <select name="user_id"
-                        class="form-control"
-                        required>
-
-                    <option value="">
-                        -- Pilih Akun Guru --
-                    </option>
-
-                    <?php while ($user = mysqli_fetch_assoc($query_user)) { ?>
-                        <option value="<?= (int)$user['id']; ?>">
-                            <?= htmlspecialchars($user['name']); ?>
-                            -
-                            <?= htmlspecialchars($user['email']); ?>
-                        </option>
-                    <?php } ?>
-
-                </select>
+                <label for="password" class="form-label">Password</label>
+                <input type="password"
+                       name="password"
+                       id="password"
+                       class="form-control"
+                       minlength="8"
+                       autocomplete="new-password"
+                       required>
+                <small class="text-muted">Minimal 8 karakter.</small>
             </div>
 
             <div class="col-md-6 mb-3">
-                <label class="form-label">Status Aktif</label>
+                <label for="konfirmasi_password" class="form-label">Konfirmasi Password</label>
+                <input type="password"
+                       name="konfirmasi_password"
+                       id="konfirmasi_password"
+                       class="form-control"
+                       minlength="8"
+                       autocomplete="new-password"
+                       required>
+                <small id="peringatanPassword" class="text-danger"></small>
+            </div>
 
+            <div class="col-md-6 mb-3">
+                <label for="status_aktif" class="form-label">Status Aktif</label>
                 <select name="status_aktif"
-                        class="form-control"
+                        id="status_aktif"
+                        class="form-select"
                         required>
                     <option value="1">Aktif</option>
                     <option value="0">Tidak Aktif</option>
@@ -238,7 +229,7 @@ if (!$query_user) {
         <label class="mb-0">
             Tampilkan
 
-            <select id="jumlahGuru" class="form-control"
+            <select id="jumlahGuru" class="form-select"
                     style="display:inline-block;width:auto;">
                 <option value="5">5</option>
                 <option value="10" selected>10</option>
@@ -364,26 +355,19 @@ if (!$query_user) {
 const inputNIP = document.getElementById('nip');
 const peringatanNIP = document.getElementById('peringatanNIP');
 const formGuru = document.getElementById('formGuru');
+const password = document.getElementById('password');
+const konfirmasiPassword = document.getElementById('konfirmasi_password');
+const peringatanPassword = document.getElementById('peringatanPassword');
 
 function validasiNIP() {
-    const nilai = inputNIP.value;
+    inputNIP.value = inputNIP.value.replace(/\D/g, '').slice(0, 18);
 
-    if (nilai.length > 18) {
+    if (inputNIP.value === '' || !/^[0-9]{1,18}$/.test(inputNIP.value)) {
         peringatanNIP.textContent =
-            'Peringatan: NIP tidak boleh lebih dari 18 digit!';
+            'NIP wajib diisi, maksimal 18 digit, dan hanya angka.';
 
         inputNIP.classList.add('is-invalid');
-        inputNIP.setCustomValidity('NIP maksimal 18 digit.');
-
-        return false;
-    }
-
-    if (nilai !== '' && !/^[0-9]+$/.test(nilai)) {
-        peringatanNIP.textContent =
-            'NIP hanya boleh berisi angka!';
-
-        inputNIP.classList.add('is-invalid');
-        inputNIP.setCustomValidity('NIP hanya boleh berisi angka.');
+        inputNIP.setCustomValidity('NIP maksimal 18 digit dan hanya angka.');
 
         return false;
     }
@@ -397,12 +381,37 @@ function validasiNIP() {
     return true;
 }
 
+function validasiPassword() {
+    if (password.value.length < 8) {
+        peringatanPassword.textContent = 'Password minimal 8 karakter.';
+        konfirmasiPassword.setCustomValidity('Password minimal 8 karakter.');
+        return false;
+    }
+
+    if (password.value !== konfirmasiPassword.value) {
+        peringatanPassword.textContent = 'Konfirmasi password tidak sama.';
+        konfirmasiPassword.setCustomValidity('Konfirmasi password tidak sama.');
+        return false;
+    }
+
+    peringatanPassword.textContent = '';
+    konfirmasiPassword.setCustomValidity('');
+    return true;
+}
+
 inputNIP.addEventListener('input', validasiNIP);
+password.addEventListener('input', validasiPassword);
+konfirmasiPassword.addEventListener('input', validasiPassword);
 
 formGuru.addEventListener('submit', function(event) {
-    if (!validasiNIP()) {
+    if (!validasiNIP() || !validasiPassword()) {
         event.preventDefault();
-        inputNIP.focus();
+
+        if (!validasiNIP()) {
+            inputNIP.focus();
+        } else {
+            konfirmasiPassword.focus();
+        }
     }
 });
 
@@ -427,7 +436,6 @@ document.addEventListener('DOMContentLoaded', function () {
     let arah = 1;
 
     function render() {
-
         const kata = pencarian.value.toLowerCase().trim();
 
         hasil = barisAsli.filter(function (tr) {
@@ -435,9 +443,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         if (kolomUrut >= 0) {
-
             hasil.sort(function (a, b) {
-
                 const x = a.cells[kolomUrut].innerText.trim();
                 const y = b.cells[kolomUrut].innerText.trim();
 
@@ -445,20 +451,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     numeric: true,
                     sensitivity: 'base'
                 }) * arah;
-
             });
-
         }
 
         const jumlah = pilihanJumlah.value === 'all'
             ? Math.max(hasil.length, 1)
             : Number(pilihanJumlah.value);
 
-        const totalHalaman = Math.max(
-            1,
-            Math.ceil(hasil.length / jumlah)
-        );
-
+        const totalHalaman = Math.max(1, Math.ceil(hasil.length / jumlah));
         halaman = Math.min(halaman, totalHalaman);
 
         const awal = (halaman - 1) * jumlah;
@@ -467,13 +467,10 @@ document.addEventListener('DOMContentLoaded', function () {
         tbody.replaceChildren();
 
         if (dataTampil.length > 0) {
-
             dataTampil.forEach(function (tr) {
                 tbody.appendChild(tr);
             });
-
         } else {
-
             const tr = document.createElement('tr');
             const td = document.createElement('td');
 
@@ -483,38 +480,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
             tr.appendChild(td);
             tbody.appendChild(tr);
-
         }
 
         if (hasil.length > 0) {
-
             info.textContent =
                 'Menampilkan ' + (awal + 1) + '–' +
                 Math.min(awal + dataTampil.length, hasil.length) +
                 ' dari ' + hasil.length + ' data guru';
-
         } else {
-
             info.textContent = 'Tidak ada data guru yang cocok.';
-
         }
 
         renderPaginasi(totalHalaman);
-
     }
 
     function renderPaginasi(totalHalaman) {
-
         paginasi.replaceChildren();
 
         function buatTombol(teks, tujuan, nonaktif, aktif) {
-
             const tombol = document.createElement('button');
 
             tombol.type = 'button';
             tombol.textContent = teks;
             tombol.disabled = nonaktif;
-
             tombol.className = aktif
                 ? 'btn btn-primary btn-sm'
                 : 'btn btn-outline-primary btn-sm';
@@ -525,7 +513,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             paginasi.appendChild(tombol);
-
         }
 
         buatTombol('‹', halaman - 1, halaman <= 1, false);
@@ -535,7 +522,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         buatTombol('›', halaman + 1, halaman >= totalHalaman, false);
-
     }
 
     pencarian.addEventListener('input', function () {
@@ -549,9 +535,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     tabel.querySelectorAll('thead th[data-kolom]').forEach(function (th) {
-
         th.addEventListener('click', function () {
-
             const kolom = Number(th.dataset.kolom);
 
             if (kolomUrut === kolom) {
@@ -563,13 +547,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             halaman = 1;
             render();
-
         });
-
     });
 
     render();
-
 });
 </script>
 
