@@ -1,6 +1,7 @@
 
 <?php
 include 'includes/cek_session.php';
+include 'config/koneksi.php';
 
 $role = $_SESSION['role'] ?? '';
 $nama = $_SESSION['name'] ?? 'Pengguna';
@@ -9,6 +10,34 @@ if (!in_array($role, ['admin', 'guru', 'wali_kelas'])) {
     header('Location: login.php');
     exit;
 }
+
+// ======================================
+// MENGHITUNG DATA DARI DATABASE
+// ======================================
+
+$total_siswa = 0;
+$total_guru = 0;
+$total_kelas = 0;
+
+// Menghitung jumlah siswa
+$query_siswa = mysqli_query($koneksi, "
+    SELECT COUNT(*) AS total FROM t_siswa
+");
+
+if ($query_siswa) {
+    $total_siswa = mysqli_fetch_assoc($query_siswa)['total'];
+}
+
+// Menghitung jumlah kelas
+$query_kelas = mysqli_query($koneksi, "
+    SELECT COUNT(*) AS total FROM t_kelas
+");
+
+if ($query_kelas) {
+    $total_kelas = mysqli_fetch_assoc($query_kelas)['total'];
+}
+
+// ======================================
 ?>
 
 <!DOCTYPE html>
@@ -40,29 +69,41 @@ if (!in_array($role, ['admin', 'guru', 'wali_kelas'])) {
 
         <div class="row">
 
+            <!-- DATA SISWA -->
             <div class="col-md-4 mb-3">
-                <div class="card shadow-sm">
+                <div class="card shadow-sm h-100">
                     <div class="card-body">
                         <h5 class="card-title">Data Siswa</h5>
-                        <h2>3000</h2>
+                        <h2 class="fw-bold">
+                            <?= number_format($total_siswa) ?>
+                        </h2>
+                        <small class="text-muted">Total seluruh siswa</small>
                     </div>
                 </div>
             </div>
 
+            <!-- DATA GURU -->
             <div class="col-md-4 mb-3">
-                <div class="card shadow-sm">
+                <div class="card shadow-sm h-100">
                     <div class="card-body">
                         <h5 class="card-title">Data Guru</h5>
-                        <h2>25</h2>
+                        <h2 class="fw-bold">
+                            <?= $total_guru === 0 ? '-' : number_format($total_guru) ?>
+                        </h2>
+                        <small class="text-muted">Total seluruh guru</small>
                     </div>
                 </div>
             </div>
 
+            <!-- DATA KELAS -->
             <div class="col-md-4 mb-3">
-                <div class="card shadow-sm">
+                <div class="card shadow-sm h-100">
                     <div class="card-body">
                         <h5 class="card-title">Kelas</h5>
-                        <h2>12</h2>
+                        <h2 class="fw-bold">
+                            <?= number_format($total_kelas) ?>
+                        </h2>
+                        <small class="text-muted">Total seluruh kelas</small>
                     </div>
                 </div>
             </div>
