@@ -34,10 +34,20 @@ $menu_guru = [
     ['Rekap Poin', 'rekap_point.php']
 ];
 
+$wali_kelas = [
+    ['Dashboard', 'dashboard.php'],
+    ['Catatan', 'catatan_pelanggaran.php'],
+    ['Tindakan', 'tindakan.php'],
+    ['Riwayat', 'riwayat.php'],
+    ['Rekap Poin', 'rekap_point.php'],
+    ['laporan', 'laporan.php']
+];
+
 if ($role === 'admin') {
     $menu = $menu_admin;
 } elseif ($role === 'guru' || $role === 'wali_kelas') {
-    $menu = $menu_guru;
+    $menu = $wali_kelas;
+    
 } else {
     $menu = [];
 }

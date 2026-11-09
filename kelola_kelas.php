@@ -9,10 +9,14 @@ if (($_SESSION['role'] ?? '') !== 'admin') {
     exit;
 }
 
-// Ambil data kelas
+// Ambil data kelas berdasarkan tingkat, jurusan, dan nama
 $query = mysqli_query($koneksi, "
-    SELECT * FROM t_kelas
-    ORDER BY id DESC
+    SELECT *
+    FROM t_kelas
+    ORDER BY
+        FIELD(tingkat, 'X', 'XI', 'XII'),
+        jurusan ASC,
+        nama ASC
 ");
 
 if (!$query) {
@@ -171,18 +175,18 @@ if (!$query) {
 
                 <tr>
 
-                    <td><?= $no++ ?></td>
+                    <td><?= $no++; ?></td>
 
                     <td>
-                        <?= htmlspecialchars($kelas['nama'] ?? '') ?>
+                        <?= htmlspecialchars($kelas['nama'] ?? ''); ?>
                     </td>
 
                     <td>
-                        <?= htmlspecialchars($kelas['tingkat'] ?? '') ?>
+                        <?= htmlspecialchars($kelas['tingkat'] ?? ''); ?>
                     </td>
 
                     <td>
-                        <?= htmlspecialchars($kelas['jurusan'] ?? '') ?>
+                        <?= htmlspecialchars($kelas['jurusan'] ?? ''); ?>
                     </td>
 
                     <td>
@@ -195,12 +199,12 @@ if (!$query) {
 
                     <td class="text-nowrap">
 
-                        <a href="edit_kelas.php?id=<?= (int)$kelas['id'] ?>"
+                        <a href="edit_kelas.php?id=<?= (int)$kelas['id']; ?>"
                            class="btn btn-primary btn-sm">
                             Edit
                         </a>
 
-                        <a href="hapus_kelas.php?id=<?= (int)$kelas['id'] ?>"
+                        <a href="hapus_kelas.php?id=<?= (int)$kelas['id']; ?>"
                            class="btn btn-danger btn-sm"
                            onclick="return confirm('Yakin ingin menghapus kelas ini?')">
                             Hapus

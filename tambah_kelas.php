@@ -3,36 +3,110 @@
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
+$error = '';
+
+$nama = '';
+$tingkat = '';
+$jurusan = '';
+$status_aktif = '1';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     $nama = trim($_POST['nama'] ?? '');
     $tingkat = trim($_POST['tingkat'] ?? '');
     $jurusan = trim($_POST['jurusan'] ?? '');
-    $status_aktif = (int) ($_POST['status_aktif'] ?? 1);
+    $status_aktif = $_POST['status_aktif'] ?? '1';
 
     if ($nama === '' || $tingkat === '' || $jurusan === '') {
+
         $error = "Semua data wajib diisi.";
+
+    } elseif (!in_array($tingkat, ['X', 'XI', 'XII'], true)) {
+
+        $error = "Tingkat kelas tidak valid.";
+
+    } elseif (!in_array($jurusan, ['RPL', 'TKJ', 'TKR', 'BD', 'TSM'], true)) {
+
+        $error = "Jurusan tidak valid.";
+
+    } elseif (!in_array($status_aktif, ['0', '1'], true)) {
+
+        $error = "Status kelas tidak valid.";
+
     } else {
-        $stmt = mysqli_prepare(
+
+        // Cek apakah kombinasi nama, tingkat, dan jurusan sudah ada
+        $cek = mysqli_prepare(
             $koneksi,
-            "INSERT INTO t_kelas (nama, tingkat, jurusan, status_aktif)
-             VALUES (?, ?, ?, ?)"
+            "SELECT id
+             FROM t_kelas
+             WHERE nama = ?
+               AND tingkat = ?
+               AND jurusan = ?
+             LIMIT 1"
         );
 
-        mysqli_stmt_bind_param(
-            $stmt,
-            "sssi",
-            $nama,
-            $tingkat,
-            $jurusan,
-            $status_aktif
-        );
+        if (!$cek) {
+            $error = "Gagal memeriksa data kelas: " . mysqli_error($koneksi);
+        } else {
 
-        if (mysqli_stmt_execute($stmt)) {
-            header('Location: kelola_kelas.php');
-            exit;
+            mysqli_stmt_bind_param(
+                $cek,
+                "sss",
+                $nama,
+                $tingkat,
+                $jurusan
+            );
+
+            mysqli_stmt_execute($cek);
+            mysqli_stmt_store_result($cek);
+
+            if (mysqli_stmt_num_rows($cek) > 0) {
+
+                $error = "Kelas tersebut sudah terdaftar. Silakan gunakan nama, tingkat, atau jurusan yang berbeda.";
+
+            } else {
+
+                // Simpan kelas jika belum ada
+                $stmt = mysqli_prepare(
+                    $koneksi,
+                    "INSERT INTO t_kelas (nama, tingkat, jurusan, status_aktif)
+                     VALUES (?, ?, ?, ?)"
+                );
+
+                if (!$stmt) {
+
+                    $error = "Gagal menyiapkan penyimpanan data: " . mysqli_error($koneksi);
+
+                } else {
+
+                    $status = (int) $status_aktif;
+
+                    mysqli_stmt_bind_param(
+                        $stmt,
+                        "sssi",
+                        $nama,
+                        $tingkat,
+                        $jurusan,
+                        $status
+                    );
+
+                    if (mysqli_stmt_execute($stmt)) {
+                        mysqli_stmt_close($stmt);
+                        mysqli_stmt_close($cek);
+
+                        header('Location: kelola_kelas.php');
+                        exit;
+                    }
+
+                    $error = "Gagal menyimpan data kelas: " . mysqli_stmt_error($stmt);
+
+                    mysqli_stmt_close($stmt);
+                }
+            }
+
+            mysqli_stmt_close($cek);
         }
-
-        $error = "Gagal menyimpan data kelas: " . mysqli_error($koneksi);
     }
 }
 ?>
@@ -218,7 +292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- KONTEN -->
         <main class="col-md-9 col-lg-10 p-4 offset-md-3 offset-lg-2">
 
-            <h2>Tambah Kelasussss</h2>
+            <h2>Tambah Kelas</h2>
 
             <p class="text-muted">
                 Tambahkan data kelas baru ke dalam sistem.
@@ -232,9 +306,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <h5 class="mb-4">Form Tambah Kelas</h5>
 
-                <?php if (isset($error)) { ?>
+                <?php if ($error !== '') { ?>
                     <div class="alert alert-danger">
-                        <?= htmlspecialchars($error) ?>
+                        <?= htmlspecialchars($error); ?>
                     </div>
                 <?php } ?>
 
@@ -242,40 +316,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="form-group">
                         <label>Nama Kelas</label>
+
                         <input type="text"
                                name="nama"
                                class="form-control"
-                               placeholder="Masukkan nama kelas"
+                               placeholder="Contoh: 1"
+                               value="<?= htmlspecialchars($nama); ?>"
                                required>
                     </div>
 
                     <div class="form-group">
                         <label>Tingkat</label>
+
                         <select name="tingkat" class="form-control" required>
                             <option value="">Pilih Tingkat</option>
-                            <option value="X">X</option>
-                            <option value="XI">XI</option>
-                            <option value="XII">XII</option>
+
+                            <option value="X" <?= $tingkat === 'X' ? 'selected' : ''; ?>>
+                                X
+                            </option>
+
+                            <option value="XI" <?= $tingkat === 'XI' ? 'selected' : ''; ?>>
+                                XI
+                            </option>
+
+                            <option value="XII" <?= $tingkat === 'XII' ? 'selected' : ''; ?>>
+                                XII
+                            </option>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label>Jurusan</label>
+
                         <select name="jurusan" class="form-control" required>
                             <option value="">Pilih Jurusan</option>
-                            <option value="RPL">RPL</option>
-                            <option value="TKJ">TKJ</option>
-                            <option value="TKR">TKR</option>
-                            <option value="BD">BD</option>
-                            <option value="TSM">TSM</option>
+
+                            <option value="RPL" <?= $jurusan === 'RPL' ? 'selected' : ''; ?>>
+                                RPL
+                            </option>
+
+                            <option value="TKJ" <?= $jurusan === 'TKJ' ? 'selected' : ''; ?>>
+                                TKJ
+                            </option>
+
+                            <option value="TKR" <?= $jurusan === 'TKR' ? 'selected' : ''; ?>>
+                                TKR
+                            </option>
+
+                            <option value="BD" <?= $jurusan === 'BD' ? 'selected' : ''; ?>>
+                                BD
+                            </option>
+
+                            <option value="TSM" <?= $jurusan === 'TSM' ? 'selected' : ''; ?>>
+                                TSM
+                            </option>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label>Status</label>
+
                         <select name="status_aktif" class="form-control" required>
-                            <option value="1">Aktif</option>
-                            <option value="0">Tidak Aktif</option>
+                            <option value="1" <?= $status_aktif === '1' ? 'selected' : ''; ?>>
+                                Aktif
+                            </option>
+
+                            <option value="0" <?= $status_aktif === '0' ? 'selected' : ''; ?>>
+                                Tidak Aktif
+                            </option>
                         </select>
                     </div>
 

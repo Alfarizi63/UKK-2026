@@ -16,8 +16,8 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 $id = (int) $_GET['id'];
 $pesan = '';
 
+// Ambil data kelas
 $stmt = mysqli_prepare($koneksi, "SELECT * FROM t_kelas WHERE id = ?");
-
 mysqli_stmt_bind_param($stmt, "i", $id);
 mysqli_stmt_execute($stmt);
 
@@ -29,29 +29,84 @@ if (!$data) {
 }
 
 $nama = $data['nama'];
-$jurusan = $data['jurusan'] ?? '';
+$tingkat = $data['tingkat'];
+$jurusan = $data['jurusan'];
+$status_aktif = (int) $data['status_aktif'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $nama = trim($_POST['nama'] ?? '');
+    $tingkat = trim($_POST['tingkat'] ?? '');
     $jurusan = trim($_POST['jurusan'] ?? '');
+    $status_aktif = (int) ($_POST['status_aktif'] ?? 0);
 
-    if ($nama === '') {
-        $pesan = 'Nama kelas wajib diisi.';
+    $daftar_tingkat = ['X', 'XI', 'XII'];
+    $daftar_jurusan = ['RPL', 'TKJ', 'TKR', 'BD', 'TSM'];
+
+    if (
+        $nama === '' ||
+        !in_array($tingkat, $daftar_tingkat, true) ||
+        !in_array($jurusan, $daftar_jurusan, true) ||
+        !in_array($status_aktif, [0, 1], true)
+    ) {
+
+        $pesan = 'Periksa kembali seluruh data kelas.';
+
     } else {
 
-        $stmt = mysqli_prepare(
+        // Cek apakah kombinasi kelas sudah digunakan kelas lain
+        $cek = mysqli_prepare(
             $koneksi,
-            "UPDATE t_kelas SET nama = ?, jurusan = ? WHERE id = ?"
+            "SELECT id FROM t_kelas
+             WHERE nama = ?
+             AND tingkat = ?
+             AND jurusan = ?
+             AND id != ?
+             LIMIT 1"
         );
 
-        mysqli_stmt_bind_param($stmt, "ssi", $nama, $jurusan, $id);
+        mysqli_stmt_bind_param(
+            $cek,
+            "sssi",
+            $nama,
+            $tingkat,
+            $jurusan,
+            $id
+        );
 
-        if (mysqli_stmt_execute($stmt)) {
-            header("Location: kelola_kelas.php");
-            exit;
+        mysqli_stmt_execute($cek);
+        $hasil_cek = mysqli_stmt_get_result($cek);
+
+        if (mysqli_num_rows($hasil_cek) > 0) {
+
+            $pesan = 'Kelas tersebut sudah terdaftar. Silakan gunakan nama kelas, tingkat, atau jurusan yang berbeda.';
+
         } else {
-            $pesan = 'Gagal mengubah kelas: ' . mysqli_error($koneksi);
+
+            // Jika tidak duplikat, lakukan update
+            $stmt = mysqli_prepare(
+                $koneksi,
+                "UPDATE t_kelas
+                 SET nama = ?, tingkat = ?, jurusan = ?, status_aktif = ?
+                 WHERE id = ?"
+            );
+
+            mysqli_stmt_bind_param(
+                $stmt,
+                "sssii",
+                $nama,
+                $tingkat,
+                $jurusan,
+                $status_aktif,
+                $id
+            );
+
+            if (mysqli_stmt_execute($stmt)) {
+                header("Location: kelola_kelas.php");
+                exit;
+            } else {
+                $pesan = 'Gagal mengubah kelas: ' . mysqli_error($koneksi);
+            }
         }
     }
 }
@@ -150,7 +205,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="mb-3">
                 <label class="form-label">Nama Kelas</label>
-
                 <input
                     type="text"
                     name="nama"
@@ -161,16 +215,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 >
             </div>
 
-            <div class="mb-4">
-                <label class="form-label">Jurusan</label>
+            <div class="mb-3">
+                <label class="form-label">Tingkat</label>
+                <select name="tingkat" class="form-control" required>
+                    <option value="">Pilih Tingkat</option>
+                    <?php foreach (['X', 'XI', 'XII'] as $item): ?>
+                        <option value="<?= $item; ?>"
+                            <?= $tingkat === $item ? 'selected' : ''; ?>>
+                            <?= $item; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
 
-                <input
-                    type="text"
-                    name="jurusan"
-                    class="form-control"
-                    value="<?= htmlspecialchars($jurusan); ?>"
-                    placeholder="Masukkan jurusan"
-                >
+            <div class="mb-3">
+                <label class="form-label">Jurusan</label>
+                <select name="jurusan" class="form-control" required>
+                    <option value="">Pilih Jurusan</option>
+                    <?php foreach (['RPL', 'TKJ', 'TKR', 'BD', 'TSM'] as $item): ?>
+                        <option value="<?= $item; ?>"
+                            <?= $jurusan === $item ? 'selected' : ''; ?>>
+                            <?= $item; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Status</label>
+                <select name="status_aktif" class="form-control" required>
+                    <option value="1" <?= $status_aktif === 1 ? 'selected' : ''; ?>>
+                        Aktif
+                    </option>
+                    <option value="0" <?= $status_aktif === 0 ? 'selected' : ''; ?>>
+                        Tidak Aktif
+                    </option>
+                </select>
             </div>
 
             <div class="d-flex justify-content-end gap-2">

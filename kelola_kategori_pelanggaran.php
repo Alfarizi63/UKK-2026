@@ -9,8 +9,8 @@ if (($_SESSION['role'] ?? '') !== 'admin') {
     exit;
 }
 
-// Ambil data kategori pelanggaran
-$sql = "SELECT * FROM t_pelanggaran_kategori ORDER BY id DESC";
+// Ambil data kategori pelanggaran berdasarkan ID terkecil
+$sql = "SELECT * FROM t_pelanggaran_kategori ORDER BY id ASC";
 $query = mysqli_query($koneksi, $sql);
 
 if (!$query) {
@@ -76,6 +76,12 @@ if (!$query) {
             color: white;
             white-space: nowrap;
             cursor: pointer;
+        }
+
+        /* Kolom nomor tidak perlu bisa diurutkan */
+        #tabelKategori th:first-child,
+        #tabelKategori th:last-child {
+            cursor: default;
         }
 
         .paginasi {
@@ -154,7 +160,7 @@ if (!$query) {
 
                     <thead>
                         <tr>
-                            <th data-kolom="0">ID</th>
+                            <th>No</th>
                             <th data-kolom="1">Nama Kategori</th>
                             <th data-kolom="2">Deskripsi</th>
                             <th data-kolom="3">Status Aktif</th>
@@ -166,12 +172,15 @@ if (!$query) {
 
                     <?php if (mysqli_num_rows($query) > 0): ?>
 
+                        <?php $no = 1; ?>
+
                         <?php while ($data = mysqli_fetch_assoc($query)): ?>
 
                             <tr>
 
+                                <!-- NOMOR URUT OTOMATIS -->
                                 <td>
-                                    <?= (int)$data['id'] ?>
+                                    <?= $no++; ?>
                                 </td>
 
                                 <td>
@@ -196,11 +205,13 @@ if (!$query) {
 
                                 <td class="text-nowrap">
 
+                                    <!-- ID ASLI TETAP DIPAKAI UNTUK EDIT -->
                                     <a href="edit_kategori_pelanggaran.php?id=<?= (int)$data['id'] ?>"
                                        class="btn btn-primary btn-sm">
                                         Edit
                                     </a>
 
+                                    <!-- ID ASLI TETAP DIPAKAI UNTUK HAPUS -->
                                     <form action="hapus_kategori_pelanggaran.php"
                                           method="POST"
                                           style="display:inline"
@@ -273,10 +284,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const kata = inputCari.value.toLowerCase().trim();
 
+        // PENCARIAN DATA
         let hasil = semuaBaris.filter(tr =>
             tr.innerText.toLowerCase().includes(kata)
         );
 
+        // PENGURUTAN DATA
         if (kolomUrut >= 0) {
 
             hasil.sort((a, b) => {
@@ -317,8 +330,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (tampil.length > 0) {
 
-            tampil.forEach(baris => {
+            tampil.forEach((baris, index) => {
+
+                // NOMOR OTOMATIS SESUAI HASIL DAN HALAMAN
+                baris.cells[0].textContent = awal + index + 1;
+
                 tbody.appendChild(baris);
+
             });
 
         } else {
@@ -335,6 +353,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         }
 
+        // INFORMASI DATA
         info.textContent = hasil.length > 0
             ? `Menampilkan ${awal + 1}–${Math.min(
                 awal + tampil.length,
@@ -342,6 +361,7 @@ document.addEventListener('DOMContentLoaded', function () {
               )} dari ${hasil.length} data kategori`
             : 'Tidak ada data kategori yang cocok.';
 
+        // PAGINASI
         navigasi.replaceChildren();
 
         function buatTombol(teks, tujuan, nonaktif, aktif) {
@@ -381,16 +401,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     }
 
+    // PENCARIAN
     inputCari.addEventListener('input', function () {
         halaman = 1;
         renderTabel();
     });
 
+    // JUMLAH DATA PER HALAMAN
     inputJumlah.addEventListener('change', function () {
         halaman = 1;
         renderTabel();
     });
 
+    // PENGURUTAN KOLOM
     tabel.querySelectorAll('thead th[data-kolom]').forEach(th => {
 
         th.title = 'Klik untuk mengurutkan';
@@ -413,6 +436,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     });
 
+    // TAMPILKAN DATA PERTAMA KALI
     renderTabel();
 
 });

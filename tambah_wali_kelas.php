@@ -1,18 +1,27 @@
+
 <?php
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
+// KHUSUS ADMIN
+if (($_SESSION['role'] ?? '') !== 'admin') {
+    header('Location: dashboard.php');
+    exit;
+}
+
 $error = '';
+
 $akun_baru = $_SESSION['akun_wali_baru'] ?? null;
 unset($_SESSION['akun_wali_baru']);
 
-$tahun_ajaran_id = 0;
+$tahun_ajaran_id = (int) ($_GET['tahun_ajaran_id'] ?? 0);
 $kelas_id = 0;
 $guru_id = 0;
 $tanggal_mulai = '';
 $tanggal_selesai = '';
 $status_aktif = 1;
 
+// PROSES PENYIMPANAN
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $tahun_ajaran_id = (int) ($_POST['tahun_ajaran_id'] ?? 0);
@@ -34,12 +43,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Semua kolom wajib diisi.';
 
     } elseif (strlen($password) < 6) {
-
         $error = 'Password minimal 6 karakter.';
 
     } elseif ($tanggal_mulai > $tanggal_selesai) {
-
         $error = 'Tanggal mulai tidak boleh melewati tanggal selesai.';
+
+    } elseif (!in_array($status_aktif, [0, 1], true)) {
+        $error = 'Status tidak valid.';
 
     } else {
 
@@ -47,7 +57,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         try {
 
-            // Ambil data guru dan email dari database
+            // PASTIKAN TAHUN AJARAN MASIH AKTIF
+            $cek_tahun = mysqli_prepare(
+                $koneksi,
+                "SELECT id
+                 FROM t_tahun_ajaran
+                 WHERE id = ?
+                   AND status_aktif = 1
+                 LIMIT 1"
+            );
+
+            mysqli_stmt_bind_param(
+                $cek_tahun,
+                "i",
+                $tahun_ajaran_id
+            );
+
+            mysqli_stmt_execute($cek_tahun);
+
+            $hasil_tahun = mysqli_stmt_get_result($cek_tahun);
+            $tahun_valid = mysqli_num_rows($hasil_tahun) > 0;
+
+            mysqli_stmt_close($cek_tahun);
+
+            if (!$tahun_valid) {
+                throw new Exception(
+                    'Tahun ajaran tidak aktif atau tidak ditemukan. Silakan pilih tahun ajaran yang aktif.'
+                );
+            }
+
+            // PASTIKAN KELAS AKTIF DAN BELUM MEMILIKI WALI KELAS
+            $cek_kelas = mysqli_prepare(
+                $koneksi,
+                "SELECT k.id
+                 FROM t_kelas k
+                 WHERE k.id = ?
+                   AND k.status_aktif = 1
+                   AND NOT EXISTS (
+                       SELECT 1
+                       FROM t_wali_kelas wk
+                       WHERE wk.kelas_id = k.id
+                         AND wk.tahun_ajaran_id = ?
+                   )
+                 LIMIT 1"
+            );
+
+            mysqli_stmt_bind_param(
+                $cek_kelas,
+                "ii",
+                $kelas_id,
+                $tahun_ajaran_id
+            );
+
+            mysqli_stmt_execute($cek_kelas);
+
+            $hasil_kelas = mysqli_stmt_get_result($cek_kelas);
+            $kelas_valid = mysqli_num_rows($hasil_kelas) > 0;
+
+            mysqli_stmt_close($cek_kelas);
+
+            if (!$kelas_valid) {
+                throw new Exception(
+                    'Kelas tersebut sudah memiliki wali kelas atau tidak aktif. Silakan pilih kelas lain.'
+                );
+            }
+
+            // AMBIL DATA GURU
             $stmt_guru = mysqli_prepare(
                 $koneksi,
                 "SELECT id, nama, email
@@ -56,7 +131,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  LIMIT 1"
             );
 
-            mysqli_stmt_bind_param($stmt_guru, "i", $guru_id);
+            mysqli_stmt_bind_param(
+                $stmt_guru,
+                "i",
+                $guru_id
+            );
+
             mysqli_stmt_execute($stmt_guru);
 
             $hasil_guru = mysqli_stmt_get_result($stmt_guru);
@@ -70,44 +150,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $email = trim($guru['email']);
 
-            if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                throw new Exception('Email guru belum tersedia atau tidak valid.');
+            if (
+                $email === '' ||
+                !filter_var($email, FILTER_VALIDATE_EMAIL)
+            ) {
+                throw new Exception(
+                    'Email guru belum tersedia atau tidak valid.'
+                );
             }
 
-            // Cek apakah kelas sudah mempunyai wali kelas
-            $cek = mysqli_prepare(
+            // CEK EMAIL AKUN
+            $cek_email = mysqli_prepare(
                 $koneksi,
-                "SELECT id FROM t_wali_kelas
-                 WHERE tahun_ajaran_id = ?
-                 AND kelas_id = ?
+                "SELECT id
+                 FROM t_users
+                 WHERE email = ?
                  LIMIT 1"
             );
 
             mysqli_stmt_bind_param(
-                $cek,
-                "ii",
-                $tahun_ajaran_id,
-                $kelas_id
+                $cek_email,
+                "s",
+                $email
             );
 
-            mysqli_stmt_execute($cek);
-            $hasil_cek = mysqli_stmt_get_result($cek);
-            $kelas_terisi = mysqli_num_rows($hasil_cek) > 0;
-            mysqli_stmt_close($cek);
-
-            if ($kelas_terisi) {
-                throw new Exception(
-                    'Kelas tersebut sudah memiliki wali kelas pada tahun ajaran yang dipilih.'
-                );
-            }
-
-            // Cek apakah email sudah digunakan akun lain
-            $cek_email = mysqli_prepare(
-                $koneksi,
-                "SELECT id FROM t_users WHERE email = ? LIMIT 1"
-            );
-
-            mysqli_stmt_bind_param($cek_email, "s", $email);
             mysqli_stmt_execute($cek_email);
 
             $hasil_email = mysqli_stmt_get_result($cek_email);
@@ -117,14 +183,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($email_terpakai) {
                 throw new Exception(
-                    'Email guru sudah terdaftar di t_users. Periksa akun tersebut terlebih dahulu agar tidak membuat akun ganda.'
+                    'Email guru sudah terdaftar di t_users. Periksa akun tersebut terlebih dahulu.'
                 );
             }
 
-            // Hash password yang ditentukan sendiri oleh Admin
-            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+            // BUAT AKUN WALI KELAS
+            $password_hash = password_hash(
+                $password,
+                PASSWORD_DEFAULT
+            );
 
-            // Buat akun wali kelas
             $role = 'wali_kelas';
 
             $buat_akun = mysqli_prepare(
@@ -132,6 +200,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "INSERT INTO t_users (email, password, role)
                  VALUES (?, ?, ?)"
             );
+
+            if (!$buat_akun) {
+                throw new Exception('Gagal menyiapkan pembuatan akun.');
+            }
 
             mysqli_stmt_bind_param(
                 $buat_akun,
@@ -147,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             mysqli_stmt_close($buat_akun);
 
-            // Simpan penugasan wali kelas
+            // SIMPAN PENUGASAN WALI KELAS
             $stmt = mysqli_prepare(
                 $koneksi,
                 "INSERT INTO t_wali_kelas
@@ -162,6 +234,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 VALUES (?, ?, ?, ?, ?, ?)"
             );
 
+            if (!$stmt) {
+                throw new Exception(
+                    'Gagal menyiapkan penugasan wali kelas.'
+                );
+            }
+
             mysqli_stmt_bind_param(
                 $stmt,
                 "iiissi",
@@ -174,15 +252,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
             if (!mysqli_stmt_execute($stmt)) {
-                throw new Exception('Gagal menyimpan penugasan wali kelas.');
+                throw new Exception(
+                    'Gagal menyimpan penugasan wali kelas.'
+                );
             }
 
             mysqli_stmt_close($stmt);
 
-            // Semua berhasil
+            // SIMPAN TRANSAKSI
             mysqli_commit($koneksi);
 
-            // Simpan informasi akun untuk ditampilkan setelah redirect
             $_SESSION['akun_wali_baru'] = [
                 'nama' => $guru['nama'],
                 'email' => $email,
@@ -192,7 +271,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: tambah_wali_kelas.php');
             exit;
 
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
 
             mysqli_rollback($koneksi);
             $error = $e->getMessage();
@@ -200,19 +279,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Ambil data pilihan dari database
+// AMBIL HANYA TAHUN AJARAN AKTIF
 $query_tahun = mysqli_query(
     $koneksi,
-    "SELECT id, nama FROM t_tahun_ajaran ORDER BY id DESC"
+    "SELECT id, nama
+     FROM t_tahun_ajaran
+     WHERE status_aktif = 1
+     ORDER BY tanggal_mulai DESC, id DESC"
 );
 
-$query_kelas = mysqli_query(
-    $koneksi,
-    "SELECT id, nama, tingkat, jurusan
-     FROM t_kelas
-     ORDER BY tingkat, jurusan, nama"
-);
+// PASTIKAN TAHUN AJARAN YANG DIPILIH MASIH AKTIF
+$tahun_tersedia = false;
 
+if ($tahun_ajaran_id > 0) {
+
+    $cek_pilihan = mysqli_prepare(
+        $koneksi,
+        "SELECT id
+         FROM t_tahun_ajaran
+         WHERE id = ?
+           AND status_aktif = 1
+         LIMIT 1"
+    );
+
+    mysqli_stmt_bind_param(
+        $cek_pilihan,
+        "i",
+        $tahun_ajaran_id
+    );
+
+    mysqli_stmt_execute($cek_pilihan);
+
+    $hasil_pilihan = mysqli_stmt_get_result($cek_pilihan);
+    $tahun_tersedia = mysqli_num_rows($hasil_pilihan) > 0;
+
+    mysqli_stmt_close($cek_pilihan);
+
+    if (!$tahun_tersedia) {
+        $tahun_ajaran_id = 0;
+    }
+}
+
+// AMBIL KELAS YANG BELUM MEMILIKI WALI KELAS
+if ($tahun_ajaran_id > 0) {
+
+    $stmt_kelas = mysqli_prepare(
+        $koneksi,
+        "SELECT k.id, k.nama, k.tingkat, k.jurusan
+         FROM t_kelas k
+         WHERE k.status_aktif = 1
+           AND NOT EXISTS (
+               SELECT 1
+               FROM t_wali_kelas wk
+               WHERE wk.kelas_id = k.id
+                 AND wk.tahun_ajaran_id = ?
+           )
+         ORDER BY k.tingkat, k.jurusan, k.nama"
+    );
+
+    mysqli_stmt_bind_param(
+        $stmt_kelas,
+        "i",
+        $tahun_ajaran_id
+    );
+
+    mysqli_stmt_execute($stmt_kelas);
+
+    $query_kelas = mysqli_stmt_get_result($stmt_kelas);
+
+} else {
+
+    $query_kelas = mysqli_query(
+        $koneksi,
+        "SELECT id, nama, tingkat, jurusan
+         FROM t_kelas
+         WHERE 1 = 0"
+    );
+}
+
+// AMBIL DATA GURU
 $query_guru = mysqli_query(
     $koneksi,
     "SELECT id, nama, email
@@ -233,11 +378,18 @@ if (!$query_tahun || !$query_kelas || !$query_guru) {
 
     <title>Tambah Wali Kelas</title>
 
+    <!-- BOOTSTRAP 4.1.3 -->
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
 
+    <!-- FONT AWESOME -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
     <style>
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
 
         body {
             margin: 0;
@@ -246,86 +398,53 @@ if (!$query_tahun || !$query_kelas || !$query_guru) {
             color: #343a40;
         }
 
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: 273px;
-            padding: 15px;
-            background: #212529;
-            color: white;
-            overflow-y: auto;
-            z-index: 1030;
-        }
-
-        .sidebar h4 {
-            font-size: 21px;
-            font-weight: bold;
-            margin-bottom: 25px;
-        }
-
-        .sidebar .nav-link {
-            display: block;
-            padding: 10px 14px;
-            margin-bottom: 5px;
-            border-radius: 5px;
-            color: white;
-            font-size: 14px;
-            text-decoration: none;
-        }
-
-        .sidebar .nav-link:hover {
-            background: #343a40;
-            color: white;
-        }
-
-        .sidebar .nav-link.active {
-            background: #007bff;
-            color: white;
-        }
-
         .konten {
             margin-left: 273px;
             padding: 28px;
-            width: calc(100% - 273px);
             min-height: 100vh;
         }
 
         .judul {
-            font-size: 30px;
+            font-size: 28px;
             font-weight: bold;
             margin-bottom: 5px;
         }
 
         .subjudul {
             color: #6c757d;
+            font-size: 14px;
             margin-bottom: 25px;
         }
 
         .card-form {
-            background: white;
+            background: #fff;
             border: 1px solid #dee2e6;
             border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             overflow: hidden;
         }
 
         .card-header-custom {
-            background: #007bff;
-            color: white;
-            padding: 15px 20px;
+            background: #fff;
+            color: #343a40;
+            padding: 16px 20px;
+            border-bottom: 1px solid #dee2e6;
             font-size: 16px;
             font-weight: bold;
         }
 
-        .card-body { padding: 25px; }
+        .card-body {
+            padding: 25px;
+        }
 
-        .form-group { margin-bottom: 20px; }
+        .form-group {
+            margin-bottom: 20px;
+        }
 
         .form-group label {
             font-weight: 600;
             font-size: 14px;
+            margin-bottom: 8px;
         }
 
         .form-control {
@@ -336,12 +455,33 @@ if (!$query_tahun || !$query_kelas || !$query_guru) {
 
         .form-control:focus {
             border-color: #80bdff;
-            box-shadow: 0 0 0 3px rgba(0,123,255,0.15);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+        }
+
+        .form-text {
+            font-size: 12px;
         }
 
         .btn {
             padding: 9px 18px;
-            font-size: 14px;
+            font-size: 13px;
+            border-radius: 4px;
+        }
+
+        .btn i {
+            margin-right: 5px;
+        }
+
+        .input-group .form-control {
+            height: 42px;
+        }
+
+        .input-group-append .btn {
+            height: 42px;
+        }
+
+        .akun-info {
+            border-left: 4px solid #28a745;
         }
 
         .footer {
@@ -352,15 +492,16 @@ if (!$query_tahun || !$query_kelas || !$query_guru) {
         }
 
         @media (max-width: 767px) {
-            .sidebar {
-                position: relative;
-                width: 100%;
-                height: auto;
-            }
-
             .konten {
                 margin-left: 0;
-                width: 100%;
+                padding: 18px;
+            }
+
+            .judul {
+                font-size: 23px;
+            }
+
+            .card-body {
                 padding: 18px;
             }
         }
@@ -369,299 +510,344 @@ if (!$query_tahun || !$query_kelas || !$query_guru) {
 
 <body>
 
-<div class="container-fluid">
-    <div class="row">
+    <!-- SIDEBAR -->
+    <?php include 'includes/sidebar.php'; ?>
 
-        <aside class="sidebar">
+    <!-- KONTEN UTAMA -->
+    <div class="konten">
 
-            <h4>My Website</h4>
+        <!-- HEADER -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
 
-            <ul class="nav nav-pills flex-column">
+            <div>
+                <h2 class="judul">Tambah Wali Kelas</h2>
 
-                <li class="nav-item mb-2">
-                    <a href="dashboard.php" class="nav-link">Dashboard</a>
-                </li>
+                <p class="subjudul">
+                    Tambahkan guru sebagai wali kelas berdasarkan tahun ajaran aktif.
+                </p>
+            </div>
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_siswa.php" class="nav-link">Data Siswa</a>
-                </li>
+            <div class="mb-3">
+                <a href="kelola_wali_kelas.php" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Kembali
+                </a>
+            </div>
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_guru.php" class="nav-link">Data Guru</a>
-                </li>
+        </div>
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_kelas.php" class="nav-link">Kelas</a>
-                </li>
+        <!-- PESAN ERROR -->
+        <?php if ($error !== '') { ?>
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_kategori_pelanggaran.php" class="nav-link">
-                        Kelola Kategori Pelanggaran
-                    </a>
-                </li>
+            <div class="alert alert-danger alert-dismissible fade show">
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_tahun_ajaran.php" class="nav-link">
-                        Kelola Tahun Ajaran
-                    </a>
-                </li>
+                <i class="fas fa-exclamation-circle mr-1"></i>
 
-                <li class="nav-item mb-2">
-                    <a href="laporan.php" class="nav-link">Laporan</a>
-                </li>
+                <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_wali_kelas.php" class="nav-link active">
-                        Kelola Wali Kelas
-                    </a>
-                </li>
+                <button type="button" class="close" data-dismiss="alert">
+                    <span>&times;</span>
+                </button>
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_penempatan_siswa.php" class="nav-link">
-                        Kelola Penempatan Siswa
-                    </a>
-                </li>
+            </div>
 
-                <li class="nav-item mb-2">
-                    <a href="rekap_point.php" class="nav-link">Rekap Poin</a>
-                </li>
+        <?php } ?>
 
-                <li class="nav-item mb-2">
-                    <a href="riwayat.php" class="nav-link">Riwayat</a>
-                </li>
+        <!-- INFORMASI AKUN BARU -->
+        <?php if ($akun_baru) { ?>
 
-                <li class="nav-item mb-2">
-                    <a href="kelola_jenis_pelanggaran.php" class="nav-link">
-                        Kelola Jenis Pelanggaran
-                    </a>
-                </li>
+            <div class="alert alert-success akun-info">
 
-                <li class="nav-item mb-2">
-                    <a href="export_pelanggaran.php" class="nav-link">
-                        Export Pelanggaran
-                    </a>
-                </li>
+                <h5 class="font-weight-bold">
+                    <i class="fas fa-check-circle"></i>
+                    Akun Wali Kelas Berhasil Dibuat
+                </h5>
 
-                <li class="nav-item mb-2">
-                    <a href="tentang_saya.php" class="nav-link">About Me</a>
-                </li>
+                <hr>
 
-                <hr class="bg-secondary">
+                <p class="mb-2">
+                    <strong>Nama:</strong>
+                    <?= htmlspecialchars($akun_baru['nama'], ENT_QUOTES, 'UTF-8'); ?>
+                </p>
 
-                <li class="nav-item">
-                    <a href="logout.php" class="nav-link text-danger">Logout</a>
-                </li>
+                <p class="mb-2">
+                    <strong>Email:</strong>
+                    <?= htmlspecialchars($akun_baru['email'], ENT_QUOTES, 'UTF-8'); ?>
+                </p>
 
-            </ul>
-        </aside>
+                <p class="mb-2">
+                    <strong>Password:</strong>
+                    <code><?= htmlspecialchars($akun_baru['password'], ENT_QUOTES, 'UTF-8'); ?></code>
+                </p>
 
-        <main class="konten">
+                <small>
+                    Simpan informasi akun ini. Password tidak akan ditampilkan kembali setelah halaman ditutup.
+                </small>
 
-            <h2 class="judul">Tambah Wali Kelas</h2>
+            </div>
 
-            <p class="subjudul">
-                Tambahkan data guru wali kelas berdasarkan tahun ajaran.
-            </p>
+        <?php } ?>
 
-            <a href="kelola_wali_kelas.php" class="btn btn-secondary mb-4">
-                Kembali
-            </a>
+        <!-- FORM -->
+        <div class="card-form">
 
-            <div class="card-form">
+            <div class="card-header-custom">
+                <i class="fas fa-user-plus text-primary mr-2"></i>
+                Form Tambah Wali Kelas
+            </div>
 
-                <div class="card-header-custom">
-                    Form Tambah Wali Kelas
-                </div>
+            <div class="card-body">
 
-                <div class="card-body">
+                <form method="POST" action="">
 
-                    <?php if ($error !== '') { ?>
-                        <div class="alert alert-danger">
-                            <?= htmlspecialchars($error) ?>
-                        </div>
-                    <?php } ?>
+                    <!-- TAHUN AJARAN AKTIF -->
+                    <div class="form-group">
 
-                    <?php if ($akun_baru) { ?>
-                        <div class="alert alert-success">
-                            <h5>Akun Wali Kelas Berhasil Dibuat</h5>
+                        <label>Tahun Ajaran</label>
 
-                            <p class="mb-1">
-                                <strong>Nama:</strong>
-                                <?= htmlspecialchars($akun_baru['nama']) ?>
-                            </p>
+                        <select
+                            name="tahun_ajaran_id"
+                            class="form-control"
+                            required
+                            onchange="window.location.href='tambah_wali_kelas.php?tahun_ajaran_id='+this.value"
+                        >
 
-                            <p class="mb-1">
-                                <strong>Email:</strong>
-                                <?= htmlspecialchars($akun_baru['email']) ?>
-                            </p>
+                            <option value="">-- Pilih Tahun Ajaran Aktif --</option>
 
-                            <p class="mb-1">
-                                <strong>Password:</strong>
-                                <code><?= htmlspecialchars($akun_baru['password']) ?></code>
-                            </p>
+                            <?php while ($ta = mysqli_fetch_assoc($query_tahun)) { ?>
 
-                            <p class="mb-0">
-                                <small>
-                                    Simpan password ini dan berikan kepada guru.
-                                    Password tidak akan ditampilkan kembali setelah halaman ditutup.
-                                </small>
-                            </p>
-                        </div>
-                    <?php } ?>
+                                <option
+                                    value="<?= (int) $ta['id']; ?>"
+                                    <?= $tahun_ajaran_id == $ta['id'] ? 'selected' : ''; ?>
+                                >
+                                    <?= htmlspecialchars($ta['nama'], ENT_QUOTES, 'UTF-8'); ?>
+                                </option>
 
-                    <form method="POST" action="">
+                            <?php } ?>
 
-                        <div class="form-group">
-                            <label>Tahun Ajaran</label>
+                        </select>
 
-                            <select name="tahun_ajaran_id" class="form-control" required>
-                                <option value="">-- Pilih Tahun Ajaran --</option>
+                        <small class="form-text text-muted">
+                            Hanya tahun ajaran dengan status aktif yang ditampilkan.
+                        </small>
 
-                                <?php while ($ta = mysqli_fetch_assoc($query_tahun)) { ?>
-                                    <option value="<?= (int) $ta['id'] ?>"
-                                        <?= $tahun_ajaran_id == $ta['id'] ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($ta['nama']) ?>
-                                    </option>
-                                <?php } ?>
-                            </select>
-                        </div>
+                    </div>
 
-                        <div class="form-group">
-                            <label>Kelas</label>
+                    <!-- KELAS -->
+                    <div class="form-group">
 
-                            <select name="kelas_id" class="form-control" required>
-                                <option value="">-- Pilih Kelas --</option>
+                        <label>Kelas</label>
 
-                                <?php while ($kelas = mysqli_fetch_assoc($query_kelas)) { ?>
-                                    <option value="<?= (int) $kelas['id'] ?>"
-                                        <?= $kelas_id == $kelas['id'] ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars(
-                                            $kelas['nama'] . ' - ' .
-                                            $kelas['tingkat'] . ' - ' .
-                                            $kelas['jurusan']
-                                        ) ?>
-                                    </option>
-                                <?php } ?>
-                            </select>
-                        </div>
+                        <select
+                            name="kelas_id"
+                            class="form-control"
+                            required
+                            <?= $tahun_ajaran_id <= 0 ? 'disabled' : ''; ?>
+                        >
 
-                        <div class="form-group">
-                            <label>Guru Wali Kelas</label>
+                            <option value="">
+                                <?= $tahun_ajaran_id > 0
+                                    ? '-- Pilih Kelas --'
+                                    : '-- Pilih Tahun Ajaran Terlebih Dahulu --'; ?>
+                            </option>
 
-                            <select name="guru_id" class="form-control" required>
-                                <option value="">-- Pilih Guru --</option>
+                            <?php while ($kelas = mysqli_fetch_assoc($query_kelas)) { ?>
 
-                                <?php while ($guru = mysqli_fetch_assoc($query_guru)) { ?>
-                                    <option value="<?= (int) $guru['id'] ?>"
-                                        <?= $guru_id == $guru['id'] ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($guru['nama']) ?>
-                                        - <?= htmlspecialchars($guru['email'] ?? '') ?>
-                                    </option>
-                                <?php } ?>
-                            </select>
-                        </div>
+                                <option value="<?= (int) $kelas['id']; ?>">
+                                    <?= htmlspecialchars(
+                                        $kelas['nama'] . ' - ' .
+                                        $kelas['tingkat'] . ' - ' .
+                                        $kelas['jurusan'],
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    ); ?>
+                                </option>
 
-                        <div class="form-group">
-                            <label>Password Akun Wali Kelas</label>
+                            <?php } ?>
 
-                            <div class="input-group">
-                                <input type="password"
-                                       name="password"
-                                       id="password"
-                                       class="form-control"
-                                       placeholder="Buat password sendiri"
-                                       minlength="6"
-                                       required>
+                        </select>
 
-                                <div class="input-group-append">
-                                    <button type="button"
-                                            class="btn btn-outline-secondary"
-                                            id="togglePassword"
-                                            onclick="togglePasswordVisibility()">
-                                        Lihat
-                                    </button>
-                                </div>
+                        <small class="form-text text-muted">
+                            Kelas yang sudah memiliki wali kelas pada tahun ajaran terpilih tidak akan ditampilkan.
+                        </small>
+
+                    </div>
+
+                    <!-- GURU -->
+                    <div class="form-group">
+
+                        <label>Guru Wali Kelas</label>
+
+                        <select name="guru_id" class="form-control" required>
+
+                            <option value="">-- Pilih Guru --</option>
+
+                            <?php while ($guru = mysqli_fetch_assoc($query_guru)) { ?>
+
+                                <option value="<?= (int) $guru['id']; ?>">
+                                    <?= htmlspecialchars($guru['nama'], ENT_QUOTES, 'UTF-8'); ?>
+                                    - <?= htmlspecialchars($guru['email'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
+                                </option>
+
+                            <?php } ?>
+
+                        </select>
+
+                    </div>
+
+                    <!-- PASSWORD -->
+                    <div class="form-group">
+
+                        <label>Password Akun Wali Kelas</label>
+
+                        <div class="input-group">
+
+                            <input
+                                type="password"
+                                name="password"
+                                id="password"
+                                class="form-control"
+                                placeholder="Buat password akun wali kelas"
+                                minlength="6"
+                                required
+                            >
+
+                            <div class="input-group-append">
+
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary"
+                                    id="togglePassword"
+                                    onclick="togglePasswordVisibility()"
+                                >
+                                    <i class="fas fa-eye"></i>
+                                    Lihat
+                                </button>
+
                             </div>
 
-                            <small class="form-text text-muted">
-                                Password ditentukan oleh Admin, minimal 6 karakter.
-                            </small>
                         </div>
 
-                        <div class="form-group">
-                            <label>Tanggal Mulai</label>
+                        <small class="form-text text-muted">
+                            Password ditentukan oleh Admin dan minimal 6 karakter.
+                        </small>
 
-                            <input type="date"
-                                   name="tanggal_mulai"
-                                   class="form-control"
-                                   value="<?= htmlspecialchars($tanggal_mulai) ?>"
-                                   required>
-                        </div>
+                    </div>
 
-                        <div class="form-group">
-                            <label>Tanggal Selesai</label>
+                    <!-- TANGGAL MULAI -->
+                    <div class="form-group">
 
-                            <input type="date"
-                                   name="tanggal_selesai"
-                                   class="form-control"
-                                   value="<?= htmlspecialchars($tanggal_selesai) ?>"
-                                   required>
-                        </div>
+                        <label>Tanggal Mulai</label>
 
-                        <div class="form-group">
-                            <label>Status</label>
+                        <input
+                            type="date"
+                            name="tanggal_mulai"
+                            class="form-control"
+                            value="<?= htmlspecialchars($tanggal_mulai, ENT_QUOTES, 'UTF-8'); ?>"
+                            required
+                        >
 
-                            <select name="status_aktif" class="form-control" required>
-                                <option value="1"
-                                    <?= $status_aktif === 1 ? 'selected' : '' ?>>
-                                    Aktif
-                                </option>
+                    </div>
 
-                                <option value="0"
-                                    <?= $status_aktif === 0 ? 'selected' : '' ?>>
-                                    Tidak Aktif
-                                </option>
-                            </select>
-                        </div>
+                    <!-- TANGGAL SELESAI -->
+                    <div class="form-group">
 
-                        <hr>
+                        <label>Tanggal Selesai</label>
 
-                        <button type="submit" class="btn btn-primary">
-                            Simpan
-                        </button>
+                        <input
+                            type="date"
+                            name="tanggal_selesai"
+                            class="form-control"
+                            value="<?= htmlspecialchars($tanggal_selesai, ENT_QUOTES, 'UTF-8'); ?>"
+                            required
+                        >
 
-                        <a href="kelola_wali_kelas.php" class="btn btn-secondary">
+                    </div>
+
+                    <!-- STATUS -->
+                    <div class="form-group">
+
+                        <label>Status</label>
+
+                        <select name="status_aktif" class="form-control" required>
+
+                            <option value="1" <?= $status_aktif === 1 ? 'selected' : ''; ?>>
+                                Aktif
+                            </option>
+
+                            <option value="0" <?= $status_aktif === 0 ? 'selected' : ''; ?>>
+                                Tidak Aktif
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <hr>
+
+                    <!-- TOMBOL -->
+                    <div class="d-flex justify-content-between flex-wrap">
+
+                        <a href="kelola_wali_kelas.php" class="btn btn-secondary mb-2">
+                            <i class="fas fa-times"></i>
                             Batal
                         </a>
 
-                    </form>
+                        <button type="submit" class="btn btn-primary mb-2">
+                            <i class="fas fa-save"></i>
+                            Simpan Wali Kelas
+                        </button>
 
-                </div>
+                    </div>
+
+                </form>
+
             </div>
+        </div>
 
-            <div class="footer">
-                © <?= date('Y') ?> Sistem Pelanggaran Siswa
-            </div>
-
-        </main>
+        <!-- FOOTER -->
+        <div class="footer">
+            © <?= date('Y'); ?> Sistem Informasi Pelanggaran Siswa
+        </div>
 
     </div>
-</div>
 
-<script>
-function togglePasswordVisibility() {
-    var inputPassword = document.getElementById('password');
-    var tombol = document.getElementById('togglePassword');
+    <!-- JAVASCRIPT -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
 
-    if (inputPassword.type === 'password') {
-        inputPassword.type = 'text';
-        tombol.textContent = 'Sembunyikan';
-    } else {
-        inputPassword.type = 'password';
-        tombol.textContent = 'Lihat';
-    }
-}
-</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+
+    <script>
+        // TAMPILKAN / SEMBUNYIKAN PASSWORD
+        function togglePasswordVisibility() {
+
+            const password = document.getElementById('password');
+            const tombol = document.getElementById('togglePassword');
+
+            if (password.type === 'password') {
+
+                password.type = 'text';
+                tombol.innerHTML = '<i class="fas fa-eye-slash"></i> Sembunyikan';
+
+            } else {
+
+                password.type = 'password';
+                tombol.innerHTML = '<i class="fas fa-eye"></i> Lihat';
+
+            }
+        }
+
+        // HILANGKAN ALERT ERROR OTOMATIS
+        $(document).ready(function () {
+
+            setTimeout(function () {
+                $('.alert-danger').alert('close');
+            }, 5000);
+
+        });
+    </script>
 
 </body>
 </html>

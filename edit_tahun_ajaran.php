@@ -10,100 +10,323 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 $id = (int) $_GET['id'];
 $pesan = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nama = trim($_POST['nama'] ?? '');
-    $tanggal_mulai = $_POST['tanggal_mulai'] ?? '';
-    $tanggal_selesai = $_POST['tanggal_selesai'] ?? '';
-
-    if ($nama === '' || $tanggal_mulai === '' || $tanggal_selesai === '') {
-        $pesan = 'Semua data wajib diisi.';
-    } elseif ($tanggal_selesai < $tanggal_mulai) {
-        $pesan = 'Tanggal selesai tidak boleh sebelum tanggal mulai.';
-    } else {
-        $stmt = mysqli_prepare(
-            $koneksi,
-            "UPDATE t_tahun_ajaran
-             SET nama = ?, tanggal_mulai = ?, tanggal_selesai = ?
-             WHERE id = ?"
-        );
-
-        mysqli_stmt_bind_param(
-            $stmt,
-            "sssi",
-            $nama,
-            $tanggal_mulai,
-            $tanggal_selesai,
-            $id
-        );
-
-        if (mysqli_stmt_execute($stmt)) {
-            header("Location: kelola_tahun_ajaran.php");
-            exit;
-        } else {
-            $pesan = 'Gagal mengubah data tahun ajaran: ' . mysqli_error($koneksi);
-        }
-    }
-}
-
+// AMBIL DATA TAHUN AJARAN
 $stmt = mysqli_prepare(
     $koneksi,
     "SELECT * FROM t_tahun_ajaran WHERE id = ?"
 );
+
 mysqli_stmt_bind_param($stmt, "i", $id);
 mysqli_stmt_execute($stmt);
+
 $result = mysqli_stmt_get_result($stmt);
 $data = mysqli_fetch_assoc($result);
+
+mysqli_stmt_close($stmt);
 
 if (!$data) {
     die('Data tahun ajaran tidak ditemukan.');
 }
 
-$nama = $_POST['nama'] ?? $data['nama'];
-$tanggal_mulai = $_POST['tanggal_mulai'] ?? $data['tanggal_mulai'];
-$tanggal_selesai = $_POST['tanggal_selesai'] ?? $data['tanggal_selesai'];
+// NILAI AWAL FORM
+$nama = $data['nama'];
+$tanggal_mulai = $data['tanggal_mulai'];
+$tanggal_selesai = $data['tanggal_selesai'];
+
+// PROSES UPDATE
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $nama = trim($_POST['nama'] ?? '');
+    $tanggal_mulai = $_POST['tanggal_mulai'] ?? '';
+    $tanggal_selesai = $_POST['tanggal_selesai'] ?? '';
+
+    if (
+        $nama === '' ||
+        $tanggal_mulai === '' ||
+        $tanggal_selesai === ''
+    ) {
+        $pesan = 'Semua data wajib diisi.';
+
+    } elseif ($tanggal_selesai < $tanggal_mulai) {
+        $pesan = 'Tanggal selesai tidak boleh sebelum tanggal mulai.';
+
+    } else {
+
+        // CEK NAMA TAHUN AJARAN DUPLIKAT
+        $cek = mysqli_prepare(
+            $koneksi,
+            "SELECT id FROM t_tahun_ajaran
+             WHERE nama = ? AND id != ?
+             LIMIT 1"
+        );
+
+        mysqli_stmt_bind_param($cek, "si", $nama, $id);
+        mysqli_stmt_execute($cek);
+
+        $hasil_cek = mysqli_stmt_get_result($cek);
+
+        if (mysqli_num_rows($hasil_cek) > 0) {
+            $pesan = 'Nama tahun ajaran sudah terdaftar.';
+        }
+
+        mysqli_stmt_close($cek);
+
+        // UPDATE DATA
+        if ($pesan === '') {
+
+            $stmt = mysqli_prepare(
+                $koneksi,
+                "UPDATE t_tahun_ajaran
+                 SET nama = ?, tanggal_mulai = ?, tanggal_selesai = ?
+                 WHERE id = ?"
+            );
+
+            if ($stmt) {
+
+                mysqli_stmt_bind_param(
+                    $stmt,
+                    "sssi",
+                    $nama,
+                    $tanggal_mulai,
+                    $tanggal_selesai,
+                    $id
+                );
+
+                if (mysqli_stmt_execute($stmt)) {
+                    mysqli_stmt_close($stmt);
+
+                    header('Location: kelola_tahun_ajaran.php');
+                    exit;
+
+                } else {
+                    $pesan = 'Gagal mengubah data tahun ajaran.';
+                }
+
+                mysqli_stmt_close($stmt);
+
+            } else {
+                $pesan = 'Terjadi kesalahan pada database.';
+            }
+        }
+    }
+}
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Edit Tahun Ajaran</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- BOOTSTRAP 4.1.3 -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+
+    <!-- FONT AWESOME -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f8f9fa;
+            font-family: Arial, sans-serif;
+            color: #343a40;
+        }
+
+        .konten {
+            margin-left: 273px;
+            padding: 30px;
+            min-height: 100vh;
+        }
+
+        .judul {
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .subjudul {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        .card-custom {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .05);
+        }
+
+        .card-header-custom {
+            padding: 16px 20px;
+            background: #fff;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-control {
+            font-size: 14px;
+            height: 40px;
+        }
+
+        .btn {
+            font-size: 13px;
+        }
+
+        .btn i {
+            margin-right: 5px;
+        }
+
+        @media (max-width: 767px) {
+            .konten {
+                margin-left: 0;
+                padding: 18px;
+            }
+
+            .judul {
+                font-size: 23px;
+            }
+
+            .card-body {
+                padding: 18px;
+            }
+        }
+    </style>
 </head>
+
 <body>
-<div class="container mt-4">
-    <h3>Edit Tahun Ajaran</h3>
 
-    <?php if ($pesan !== ''): ?>
-        <div class="alert alert-danger">
-            <?= htmlspecialchars($pesan); ?>
-        </div>
-    <?php endif; ?>
+    <!-- SIDEBAR -->
+    <?php include 'includes/sidebar.php'; ?>
 
-    <form method="POST">
+    <!-- KONTEN UTAMA -->
+    <div class="konten">
+
+        <!-- HEADER -->
         <div class="mb-3">
-            <label class="form-label">Nama Tahun Ajaran</label>
-            <input type="text" name="nama" class="form-control"
-                   value="<?= htmlspecialchars($nama); ?>"
-                   placeholder="Contoh: 2026/2027" required>
+            <h2 class="judul">Edit Tahun Ajaran</h2>
+
+            <p class="subjudul">
+                Ubah informasi data tahun ajaran sekolah.
+            </p>
         </div>
 
-        <div class="mb-3">
-            <label class="form-label">Tanggal Mulai</label>
-            <input type="date" name="tanggal_mulai" class="form-control"
-                   value="<?= htmlspecialchars($tanggal_mulai); ?>" required>
+        <!-- PESAN ERROR -->
+        <?php if ($pesan !== '') { ?>
+
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+
+                <?= htmlspecialchars($pesan, ENT_QUOTES, 'UTF-8'); ?>
+
+                <button type="button" class="close" data-dismiss="alert">
+                    <span>&times;</span>
+                </button>
+            </div>
+
+        <?php } ?>
+
+        <!-- FORM EDIT -->
+        <div class="card-custom">
+
+            <div class="card-header-custom">
+                <i class="fas fa-edit text-primary mr-2"></i>
+                Form Edit Tahun Ajaran
+            </div>
+
+            <div class="card-body">
+
+                <form method="POST">
+
+                    <!-- NAMA TAHUN AJARAN -->
+                    <div class="form-group">
+                        <label>Nama Tahun Ajaran</label>
+
+                        <input
+                            type="text"
+                            name="nama"
+                            class="form-control"
+                            value="<?= htmlspecialchars($nama, ENT_QUOTES, 'UTF-8'); ?>"
+                            placeholder="Contoh: 2026/2027"
+                            required
+                        >
+                    </div>
+
+                    <!-- TANGGAL MULAI -->
+                    <div class="form-group">
+                        <label>Tanggal Mulai</label>
+
+                        <input
+                            type="date"
+                            name="tanggal_mulai"
+                            class="form-control"
+                            value="<?= htmlspecialchars($tanggal_mulai, ENT_QUOTES, 'UTF-8'); ?>"
+                            required
+                        >
+                    </div>
+
+                    <!-- TANGGAL SELESAI -->
+                    <div class="form-group">
+                        <label>Tanggal Selesai</label>
+
+                        <input
+                            type="date"
+                            name="tanggal_selesai"
+                            class="form-control"
+                            value="<?= htmlspecialchars($tanggal_selesai, ENT_QUOTES, 'UTF-8'); ?>"
+                            required
+                        >
+                    </div>
+
+                    <hr>
+
+                    <!-- TOMBOL -->
+                    <div class="d-flex justify-content-between flex-wrap">
+
+                        <a href="kelola_tahun_ajaran.php"
+                           class="btn btn-secondary mb-2">
+                            <i class="fas fa-arrow-left"></i>
+                            Kembali
+                        </a>
+
+                        <button type="submit"
+                                class="btn btn-primary mb-2">
+                            <i class="fas fa-save"></i>
+                            Simpan Perubahan
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
         </div>
 
-        <div class="mb-3">
-            <label class="form-label">Tanggal Selesai</label>
-            <input type="date" name="tanggal_selesai" class="form-control"
-                   value="<?= htmlspecialchars($tanggal_selesai); ?>" required>
-        </div>
+    </div>
 
-        <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-        <a href="kelola_tahun_ajaran.php" class="btn btn-secondary">Kembali</a>
-    </form>
-</div>
+    <!-- JAVASCRIPT -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+
 </body>
 </html>

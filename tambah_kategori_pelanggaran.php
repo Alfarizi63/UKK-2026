@@ -3,29 +3,40 @@
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
+// Khusus admin
+if (($_SESSION['role'] ?? '') !== 'admin') {
+    header('Location: dashboard.php');
+    exit;
+}
+
 $pesan = '';
 $nama = '';
 $deskripsi = '';
 $status_aktif = 1;
 
+// Proses tambah kategori
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $nama = trim($_POST['nama'] ?? '');
     $deskripsi = trim($_POST['deskripsi'] ?? '');
     $status_aktif = isset($_POST['status_aktif']) ? 1 : 0;
 
+    // Validasi nama
     if ($nama === '') {
-        $pesan = 'Nama kategori wajib diisi.';
+        $pesan = 'Nama kategori wajib diisi!';
     } else {
 
-        $stmt = mysqli_prepare(
-            $koneksi,
-            "INSERT INTO t_pelanggaran_kategori
-            (nama, deskripsi, status_aktif)
-            VALUES (?, ?, ?)"
-        );
+        try {
+            // Gunakan nama tabel sesuai database
+            $sql = "INSERT INTO t_pelanggaran_kategori
+                    (nama, deskripsi, status_aktif)
+                    VALUES (?, ?, ?)";
 
-        if ($stmt) {
+            $stmt = mysqli_prepare($koneksi, $sql);
+
+            if (!$stmt) {
+                throw new Exception(mysqli_error($koneksi));
+            }
 
             mysqli_stmt_bind_param(
                 $stmt,
@@ -37,16 +48,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (mysqli_stmt_execute($stmt)) {
                 mysqli_stmt_close($stmt);
-                header('Location: kelola_kategori_pelanggaran.php');
+
+                header('Location: kelola_kategori_pelanggaran.php?pesan=tambah_berhasil');
                 exit;
             } else {
-                $pesan = 'Gagal menyimpan kategori.';
+                throw new Exception(mysqli_stmt_error($stmt));
             }
 
-            mysqli_stmt_close($stmt);
-
-        } else {
-            $pesan = 'Terjadi kesalahan pada database.';
+        } catch (Throwable $e) {
+            $pesan = 'Gagal menambahkan kategori: ' . $e->getMessage();
         }
     }
 }
@@ -54,103 +64,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Tambah Kategori Pelanggaran</title>
 
-    <!-- BOOTSTRAP -->
+    <!-- Bootstrap 4.1.3 -->
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
 
-    <!-- ICON -->
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
         body {
-            margin: 0;
-            background: #f8f9fa;
+            background: #f5f6fa;
             font-family: Arial, sans-serif;
-            color: #343a40;
         }
 
-        /* KONTEN */
-        .konten {
+        .content {
             margin-left: 250px;
-            padding: 25px 28px;
-            min-height: 100vh;
-            width: calc(100% - 250px);
+            padding: 30px;
         }
 
-        .judul {
-            font-size: 30px;
-            font-weight: bold;
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
             margin-bottom: 5px;
+            color: #333;
         }
 
-        .subjudul {
-            color: #6c757d;
+        .page-subtitle {
+            color: #777;
             margin-bottom: 25px;
         }
 
-        /* FORM */
-        .card-form {
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
         }
 
-        .card-header-custom {
-            background: #007bff;
-            color: white;
-            padding: 13px 20px;
-            font-weight: bold;
-            border-radius: 4px 4px 0 0;
+        .card-header {
+            background: #fff;
+            border-bottom: 1px solid #eee;
+            padding: 18px 22px;
+            font-weight: 600;
         }
 
         .card-body {
             padding: 25px;
         }
 
-        .form-control {
-            height: 42px;
-            font-size: 14px;
+        .form-group label {
+            font-weight: 600;
+            color: #444;
         }
 
-        textarea.form-control {
+        .form-control {
+            border-radius: 6px;
+            padding: 10px 12px;
             height: auto;
         }
 
-        .form-group label {
-            font-weight: 600;
-            font-size: 14px;
+        textarea.form-control {
+            min-height: 120px;
         }
 
         .btn {
-            font-size: 14px;
+            border-radius: 6px;
             padding: 9px 18px;
         }
 
         .status-box {
             background: #f8f9fa;
-            padding: 13px;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
+            padding: 15px;
+            border-radius: 7px;
+            border: 1px solid #e5e5e5;
         }
 
-        @media (max-width: 767px) {
-            .konten {
+        @media (max-width: 768px) {
+            .content {
                 margin-left: 0;
-                width: 100%;
-                padding: 18px;
+                padding: 15px;
             }
         }
     </style>
@@ -158,103 +157,123 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body>
 
-<?php include 'includes/sidebar.php'; ?>
+    <?php include 'includes/sidebar.php'; ?>
 
-<!-- KONTEN UTAMA -->
-<main class="konten">
+    <div class="content">
 
-            <h2 class="judul">Tambah Kategori Pelanggaran</h2>
+        <div class="mb-4">
+            <h4 class="page-title">
+                <i class="bi bi-plus-circle"></i>
+                Tambah Kategori Pelanggaran
+            </h4>
 
-            <p class="subjudul">
+            <p class="page-subtitle">
                 Tambahkan kategori pelanggaran baru ke dalam sistem.
             </p>
+        </div>
 
-            <a href="kelola_kategori_pelanggaran.php"
-               class="btn btn-secondary mb-4">
-                <i class="bi bi-arrow-left"></i>
-                Kembali
-            </a>
+        <?php if ($pesan !== ''): ?>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <?= htmlspecialchars($pesan, ENT_QUOTES, 'UTF-8'); ?>
 
-            <!-- FORM TAMBAH -->
-            <div class="card-form">
+                <button type="button" class="close" data-dismiss="alert">
+                    <span>&times;</span>
+                </button>
+            </div>
+        <?php endif; ?>
 
-                <div class="card-header-custom">
-                    <i class="bi bi-plus-circle"></i>
-                    Form Tambah Kategori
-                </div>
+        <div class="card">
 
-                <div class="card-body">
+            <div class="card-header">
+                <i class="bi bi-card-list"></i>
+                Form Tambah Kategori
+            </div>
 
-                    <?php if ($pesan !== '') { ?>
-                        <div class="alert alert-danger">
-                            <?= htmlspecialchars($pesan) ?>
-                        </div>
-                    <?php } ?>
+            <div class="card-body">
 
-                    <form method="POST">
+                <form method="POST">
 
-                        <div class="form-group">
-                            <label>Nama Kategori</label>
+                    <div class="form-group">
+                        <label for="nama">Nama Kategori</label>
 
-                            <input type="text"
-                                   name="nama"
-                                   class="form-control"
-                                   placeholder="Masukkan nama kategori"
-                                   value="<?= htmlspecialchars($nama) ?>"
-                                   required>
-                        </div>
+                        <input
+                            type="text"
+                            name="nama"
+                            id="nama"
+                            class="form-control"
+                            placeholder="Masukkan nama kategori pelanggaran"
+                            value="<?= htmlspecialchars($nama, ENT_QUOTES, 'UTF-8'); ?>"
+                            maxlength="100"
+                            required
+                        >
+                    </div>
 
-                        <div class="form-group">
-                            <label>Deskripsi</label>
+                    <div class="form-group">
+                        <label for="deskripsi">Deskripsi</label>
 
-                            <textarea name="deskripsi"
-                                      class="form-control"
-                                      rows="4"
-                                      placeholder="Masukkan deskripsi kategori"><?= htmlspecialchars($deskripsi) ?></textarea>
-                        </div>
+                        <textarea
+                            name="deskripsi"
+                            id="deskripsi"
+                            class="form-control"
+                            placeholder="Masukkan deskripsi kategori pelanggaran"
+                        ><?= htmlspecialchars($deskripsi, ENT_QUOTES, 'UTF-8'); ?></textarea>
+                    </div>
 
-                        <div class="form-group">
-                            <label>Status Aktif</label>
+                    <div class="form-group">
+                        <label>Status Kategori</label>
 
-                            <div class="status-box">
-                                <div class="custom-control custom-checkbox">
-                                    <input type="checkbox"
-                                           class="custom-control-input"
-                                           id="status_aktif"
-                                           name="status_aktif"
-                                           value="1"
-                                           <?= $status_aktif ? 'checked' : '' ?>>
+                        <div class="status-box">
+                            <div class="custom-control custom-checkbox">
+                                <input
+                                    type="checkbox"
+                                    class="custom-control-input"
+                                    id="status_aktif"
+                                    name="status_aktif"
+                                    value="1"
+                                    <?= $status_aktif == 1 ? 'checked' : ''; ?>
+                                >
 
-                                    <label class="custom-control-label"
-                                           for="status_aktif">
-                                        Aktif
-                                    </label>
-                                </div>
+                                <label
+                                    class="custom-control-label"
+                                    for="status_aktif"
+                                >
+                                    Aktif
+                                </label>
                             </div>
+
+                            <small class="text-muted">
+                                Centang jika kategori ingin langsung diaktifkan.
+                            </small>
                         </div>
+                    </div>
 
-                        <hr>
+                    <hr>
 
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save"></i>
-                            Simpan
-                        </button>
+                    <div class="d-flex justify-content-between">
 
                         <a href="kelola_kategori_pelanggaran.php"
                            class="btn btn-secondary">
-                            Batal
+                            <i class="bi bi-arrow-left"></i>
+                            Kembali
                         </a>
 
-                    </form>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i>
+                            Simpan Kategori
+                        </button>
 
-                </div>
+                    </div>
+
+                </form>
+
             </div>
+        </div>
 
-            <p class="text-center text-muted small mt-4">
-                © <?= date('Y') ?> Sistem Pelanggaran Siswa
-            </p>
+    </div>
 
-</main>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
 
 </body>
 </html>

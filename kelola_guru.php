@@ -1,3 +1,4 @@
+
 <?php
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
@@ -14,7 +15,7 @@ $sql = "SELECT
             t_users.email AS email_user
         FROM t_guru
         LEFT JOIN t_users ON t_guru.user_id = t_users.id
-        ORDER BY t_guru.id DESC";
+        ORDER BY t_guru.nama ASC";
 
 $query = mysqli_query($koneksi, $sql);
 
@@ -135,22 +136,25 @@ if (!$query) {
 
             <div class="col-md-6 mb-3">
                 <label for="nip" class="form-label">NIP</label>
+
                 <input type="text"
                        name="nip"
                        id="nip"
                        class="form-control"
                        maxlength="18"
-                       pattern="[0-9]{1,18}"
-                       inputmode="numeric"
+                       pattern="NIP[0-9]{1,15}"
+                       placeholder="NIP123456"
+                       autocomplete="off"
                        required>
 
                 <small id="peringatanNIP" class="text-muted">
-                    NIP maksimal 18 digit dan hanya boleh menggunakan angka.
+                    Format NIP: NIP diikuti angka, maksimal 18 karakter.
                 </small>
             </div>
 
             <div class="col-md-6 mb-3">
                 <label for="nama" class="form-label">Nama Guru</label>
+
                 <input type="text"
                        name="nama"
                        id="nama"
@@ -160,6 +164,7 @@ if (!$query) {
 
             <div class="col-md-6 mb-3">
                 <label for="email" class="form-label">Email</label>
+
                 <input type="email"
                        name="email"
                        id="email"
@@ -170,6 +175,7 @@ if (!$query) {
 
             <div class="col-md-6 mb-3">
                 <label for="password" class="form-label">Password</label>
+
                 <input type="password"
                        name="password"
                        id="password"
@@ -177,11 +183,15 @@ if (!$query) {
                        minlength="8"
                        autocomplete="new-password"
                        required>
+
                 <small class="text-muted">Minimal 8 karakter.</small>
             </div>
 
             <div class="col-md-6 mb-3">
-                <label for="konfirmasi_password" class="form-label">Konfirmasi Password</label>
+                <label for="konfirmasi_password" class="form-label">
+                    Konfirmasi Password
+                </label>
+
                 <input type="password"
                        name="konfirmasi_password"
                        id="konfirmasi_password"
@@ -189,11 +199,13 @@ if (!$query) {
                        minlength="8"
                        autocomplete="new-password"
                        required>
+
                 <small id="peringatanPassword" class="text-danger"></small>
             </div>
 
             <div class="col-md-6 mb-3">
                 <label for="status_aktif" class="form-label">Status Aktif</label>
+
                 <select name="status_aktif"
                         id="status_aktif"
                         class="form-select"
@@ -229,7 +241,8 @@ if (!$query) {
         <label class="mb-0">
             Tampilkan
 
-            <select id="jumlahGuru" class="form-select"
+            <select id="jumlahGuru"
+                    class="form-select"
                     style="display:inline-block;width:auto;">
                 <option value="5">5</option>
                 <option value="10" selected>10</option>
@@ -249,12 +262,11 @@ if (!$query) {
 
             <thead>
                 <tr>
-                    <th data-kolom="0">ID</th>
+                    <th style="width:65px;">No.</th>
                     <th data-kolom="1">NIP</th>
                     <th data-kolom="2">Nama</th>
                     <th data-kolom="3">Email</th>
                     <th data-kolom="4">Status</th>
-                    <th data-kolom="5">User ID</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
@@ -266,7 +278,7 @@ if (!$query) {
                     <?php while ($guru = mysqli_fetch_assoc($query)) { ?>
 
                         <tr>
-                            <td><?= (int)$guru['id']; ?></td>
+                            <td class="nomor-urut"></td>
 
                             <td>
                                 <?= htmlspecialchars($guru['nip'] ?? ''); ?>
@@ -290,10 +302,6 @@ if (!$query) {
                                 <?php } ?>
                             </td>
 
-                            <td>
-                                <?= htmlspecialchars($guru['user_id'] ?? '-'); ?>
-                            </td>
-
                             <td class="text-nowrap">
 
                                 <a href="edit_guru.php?id=<?= (int)$guru['id']; ?>"
@@ -306,7 +314,9 @@ if (!$query) {
                                       style="display:inline"
                                       onsubmit="return confirm('Yakin ingin menghapus data guru ini?');">
 
-                                    <input type="hidden" name="aksi" value="hapus">
+                                    <input type="hidden"
+                                           name="aksi"
+                                           value="hapus">
 
                                     <input type="hidden"
                                            name="id"
@@ -327,7 +337,7 @@ if (!$query) {
                 <?php } else { ?>
 
                     <tr>
-                        <td colspan="7" class="text-center">
+                        <td colspan="6" class="text-center">
                             Belum ada data guru.
                         </td>
                     </tr>
@@ -351,29 +361,48 @@ if (!$query) {
 </main>
 
 <script>
-// Validasi NIP
+// ================================
+// VALIDASI NIP
+// Format: NIP + 1 sampai 15 angka
+// ================================
+
 const inputNIP = document.getElementById('nip');
 const peringatanNIP = document.getElementById('peringatanNIP');
+
 const formGuru = document.getElementById('formGuru');
 const password = document.getElementById('password');
 const konfirmasiPassword = document.getElementById('konfirmasi_password');
 const peringatanPassword = document.getElementById('peringatanPassword');
 
 function validasiNIP() {
-    inputNIP.value = inputNIP.value.replace(/\D/g, '').slice(0, 18);
 
-    if (inputNIP.value === '' || !/^[0-9]{1,18}$/.test(inputNIP.value)) {
+    let nilai = inputNIP.value.toUpperCase();
+
+    // Jika pengguna mulai mengetik angka,
+    // otomatis tambahkan awalan NIP.
+    if (nilai.length > 0 && !nilai.startsWith('NIP')) {
+        nilai = 'NIP' + nilai.replace(/[^0-9]/g, '');
+    } else if (nilai.startsWith('NIP')) {
+        nilai = 'NIP' + nilai.substring(3).replace(/[^0-9]/g, '');
+    }
+
+    // Maksimal 18 karakter
+    inputNIP.value = nilai.substring(0, 18);
+
+    const valid = /^NIP[0-9]{1,15}$/.test(inputNIP.value);
+
+    if (!valid) {
         peringatanNIP.textContent =
-            'NIP wajib diisi, maksimal 18 digit, dan hanya angka.';
+            'NIP harus diawali NIP dan dilanjutkan 1–15 angka.';
 
         inputNIP.classList.add('is-invalid');
-        inputNIP.setCustomValidity('NIP maksimal 18 digit dan hanya angka.');
+        inputNIP.setCustomValidity('Format NIP tidak valid.');
 
         return false;
     }
 
     peringatanNIP.textContent =
-        'NIP maksimal 18 digit dan hanya boleh menggunakan angka.';
+        'Format NIP valid: NIP diikuti angka.';
 
     inputNIP.classList.remove('is-invalid');
     inputNIP.setCustomValidity('');
@@ -381,21 +410,37 @@ function validasiNIP() {
     return true;
 }
 
+// ================================
+// VALIDASI PASSWORD
+// ================================
+
 function validasiPassword() {
+
     if (password.value.length < 8) {
-        peringatanPassword.textContent = 'Password minimal 8 karakter.';
-        konfirmasiPassword.setCustomValidity('Password minimal 8 karakter.');
+        peringatanPassword.textContent =
+            'Password minimal 8 karakter.';
+
+        konfirmasiPassword.setCustomValidity(
+            'Password minimal 8 karakter.'
+        );
+
         return false;
     }
 
     if (password.value !== konfirmasiPassword.value) {
-        peringatanPassword.textContent = 'Konfirmasi password tidak sama.';
-        konfirmasiPassword.setCustomValidity('Konfirmasi password tidak sama.');
+        peringatanPassword.textContent =
+            'Konfirmasi password tidak sama.';
+
+        konfirmasiPassword.setCustomValidity(
+            'Konfirmasi password tidak sama.'
+        );
+
         return false;
     }
 
     peringatanPassword.textContent = '';
     konfirmasiPassword.setCustomValidity('');
+
     return true;
 }
 
@@ -404,10 +449,14 @@ password.addEventListener('input', validasiPassword);
 konfirmasiPassword.addEventListener('input', validasiPassword);
 
 formGuru.addEventListener('submit', function(event) {
-    if (!validasiNIP() || !validasiPassword()) {
+
+    const nipValid = validasiNIP();
+    const passwordValid = validasiPassword();
+
+    if (!nipValid || !passwordValid) {
         event.preventDefault();
 
-        if (!validasiNIP()) {
+        if (!nipValid) {
             inputNIP.focus();
         } else {
             konfirmasiPassword.focus();
@@ -415,7 +464,10 @@ formGuru.addEventListener('submit', function(event) {
     }
 });
 
-// Tabel guru
+// ================================
+// TABEL GURU
+// ================================
+
 document.addEventListener('DOMContentLoaded', function () {
 
     const tabel = document.getElementById('tabelGuru');
@@ -427,7 +479,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const barisAsli = Array.from(tbody.querySelectorAll('tr'))
         .filter(function (tr) {
-            return tr.cells.length === 7;
+            return tr.cells.length === 6;
         });
 
     let hasil = barisAsli.slice();
@@ -436,6 +488,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let arah = 1;
 
     function render() {
+
         const kata = pencarian.value.toLowerCase().trim();
 
         hasil = barisAsli.filter(function (tr) {
@@ -444,6 +497,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (kolomUrut >= 0) {
             hasil.sort(function (a, b) {
+
                 const x = a.cells[kolomUrut].innerText.trim();
                 const y = b.cells[kolomUrut].innerText.trim();
 
@@ -458,23 +512,38 @@ document.addEventListener('DOMContentLoaded', function () {
             ? Math.max(hasil.length, 1)
             : Number(pilihanJumlah.value);
 
-        const totalHalaman = Math.max(1, Math.ceil(hasil.length / jumlah));
+        const totalHalaman = Math.max(
+            1,
+            Math.ceil(hasil.length / jumlah)
+        );
+
         halaman = Math.min(halaman, totalHalaman);
 
         const awal = (halaman - 1) * jumlah;
-        const dataTampil = hasil.slice(awal, awal + jumlah);
+
+        const dataTampil = hasil.slice(
+            awal,
+            awal + jumlah
+        );
 
         tbody.replaceChildren();
 
         if (dataTampil.length > 0) {
-            dataTampil.forEach(function (tr) {
+
+            dataTampil.forEach(function (tr, index) {
+
+                // Nomor urut menyesuaikan halaman
+                tr.cells[0].textContent = awal + index + 1;
+
                 tbody.appendChild(tr);
             });
+
         } else {
+
             const tr = document.createElement('tr');
             const td = document.createElement('td');
 
-            td.colSpan = 7;
+            td.colSpan = 6;
             td.className = 'text-center';
             td.textContent = 'Data guru tidak ditemukan.';
 
@@ -483,11 +552,14 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (hasil.length > 0) {
+
             info.textContent =
                 'Menampilkan ' + (awal + 1) + '–' +
                 Math.min(awal + dataTampil.length, hasil.length) +
                 ' dari ' + hasil.length + ' data guru';
+
         } else {
+
             info.textContent = 'Tidak ada data guru yang cocok.';
         }
 
@@ -495,14 +567,17 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function renderPaginasi(totalHalaman) {
+
         paginasi.replaceChildren();
 
         function buatTombol(teks, tujuan, nonaktif, aktif) {
+
             const tombol = document.createElement('button');
 
             tombol.type = 'button';
             tombol.textContent = teks;
             tombol.disabled = nonaktif;
+
             tombol.className = aktif
                 ? 'btn btn-primary btn-sm'
                 : 'btn btn-outline-primary btn-sm';
@@ -518,10 +593,20 @@ document.addEventListener('DOMContentLoaded', function () {
         buatTombol('‹', halaman - 1, halaman <= 1, false);
 
         for (let i = 1; i <= totalHalaman; i++) {
-            buatTombol(String(i), i, false, i === halaman);
+            buatTombol(
+                String(i),
+                i,
+                false,
+                i === halaman
+            );
         }
 
-        buatTombol('›', halaman + 1, halaman >= totalHalaman, false);
+        buatTombol(
+            '›',
+            halaman + 1,
+            halaman >= totalHalaman,
+            false
+        );
     }
 
     pencarian.addEventListener('input', function () {
@@ -535,7 +620,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     tabel.querySelectorAll('thead th[data-kolom]').forEach(function (th) {
+
         th.addEventListener('click', function () {
+
             const kolom = Number(th.dataset.kolom);
 
             if (kolomUrut === kolom) {
