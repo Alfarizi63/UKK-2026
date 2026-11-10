@@ -21,13 +21,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $deskripsi = trim($_POST['deskripsi'] ?? '');
     $status_aktif = isset($_POST['status_aktif']) ? 1 : 0;
 
-    // Validasi nama
+    // Validasi nama kategori
     if ($nama === '') {
+
         $pesan = 'Nama kategori wajib diisi!';
+
     } else {
 
         try {
-            // Gunakan nama tabel sesuai database
+
+            // Cek kategori duplikat
+            $sqlCek = "SELECT id
+                       FROM t_pelanggaran_kategori
+                       WHERE nama = ?";
+
+            $stmtCek = mysqli_prepare($koneksi, $sqlCek);
+
+            if (!$stmtCek) {
+                throw new Exception(mysqli_error($koneksi));
+            }
+
+            mysqli_stmt_bind_param($stmtCek, "s", $nama);
+            mysqli_stmt_execute($stmtCek);
+
+            $hasilCek = mysqli_stmt_get_result($stmtCek);
+            $jumlah = mysqli_num_rows($hasilCek);
+
+            mysqli_stmt_close($stmtCek);
+
+            if ($jumlah > 0) {
+                throw new Exception('Nama kategori sudah tersedia!');
+            }
+
+            // Simpan kategori
             $sql = "INSERT INTO t_pelanggaran_kategori
                     (nama, deskripsi, status_aktif)
                     VALUES (?, ?, ?)";
@@ -46,17 +72,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $status_aktif
             );
 
-            if (mysqli_stmt_execute($stmt)) {
-                mysqli_stmt_close($stmt);
-
-                header('Location: kelola_kategori_pelanggaran.php?pesan=tambah_berhasil');
-                exit;
-            } else {
+            if (!mysqli_stmt_execute($stmt)) {
                 throw new Exception(mysqli_stmt_error($stmt));
             }
 
+            mysqli_stmt_close($stmt);
+
+            // Pesan berhasil
+            $_SESSION['pesan'] = 'Kategori pelanggaran berhasil ditambahkan!';
+
+            header('Location: kelola_kategori_pelanggaran.php');
+            exit;
+
         } catch (Throwable $e) {
+
             $pesan = 'Gagal menambahkan kategori: ' . $e->getMessage();
+
         }
     }
 }
@@ -88,6 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .content {
             margin-left: 250px;
             padding: 30px;
+            min-width: 0;
         }
 
         .page-title {
@@ -162,6 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="content">
 
         <div class="mb-4">
+
             <h4 class="page-title">
                 <i class="bi bi-plus-circle"></i>
                 Tambah Kategori Pelanggaran
@@ -170,16 +203,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p class="page-subtitle">
                 Tambahkan kategori pelanggaran baru ke dalam sistem.
             </p>
+
         </div>
 
         <?php if ($pesan !== ''): ?>
+
             <div class="alert alert-danger alert-dismissible fade show">
+
                 <?= htmlspecialchars($pesan, ENT_QUOTES, 'UTF-8'); ?>
 
                 <button type="button" class="close" data-dismiss="alert">
                     <span>&times;</span>
                 </button>
+
             </div>
+
         <?php endif; ?>
 
         <div class="card">
@@ -191,9 +229,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="card-body">
 
-                <form method="POST">
+                <form method="POST" id="formKategori">
 
+                    <!-- Nama Kategori -->
                     <div class="form-group">
+
                         <label for="nama">Nama Kategori</label>
 
                         <input
@@ -206,9 +246,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             maxlength="100"
                             required
                         >
+
                     </div>
 
+                    <!-- Deskripsi -->
                     <div class="form-group">
+
                         <label for="deskripsi">Deskripsi</label>
 
                         <textarea
@@ -217,13 +260,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             class="form-control"
                             placeholder="Masukkan deskripsi kategori pelanggaran"
                         ><?= htmlspecialchars($deskripsi, ENT_QUOTES, 'UTF-8'); ?></textarea>
+
                     </div>
 
+                    <!-- Status Kategori -->
                     <div class="form-group">
+
                         <label>Status Kategori</label>
 
                         <div class="status-box">
+
                             <div class="custom-control custom-checkbox">
+
                                 <input
                                     type="checkbox"
                                     class="custom-control-input"
@@ -239,27 +287,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 >
                                     Aktif
                                 </label>
+
                             </div>
 
                             <small class="text-muted">
                                 Centang jika kategori ingin langsung diaktifkan.
                             </small>
+
                         </div>
+
                     </div>
 
                     <hr>
 
+                    <!-- Tombol -->
                     <div class="d-flex justify-content-between">
 
                         <a href="kelola_kategori_pelanggaran.php"
                            class="btn btn-secondary">
+
                             <i class="bi bi-arrow-left"></i>
                             Kembali
+
                         </a>
 
                         <button type="submit" class="btn btn-primary">
+
                             <i class="bi bi-save"></i>
                             Simpan Kategori
+
                         </button>
 
                     </div>
@@ -267,10 +323,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </form>
 
             </div>
+
         </div>
 
     </div>
 
+    <!-- Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>

@@ -1,7 +1,11 @@
-
+```php
 <?php
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
+
+if (!isset($koneksi) || !($koneksi instanceof mysqli)) {
+    die('Koneksi database tidak tersedia.');
+}
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     die('ID tahun ajaran tidak valid.');
@@ -32,6 +36,7 @@ if (!$data) {
 $nama = $data['nama'];
 $tanggal_mulai = $data['tanggal_mulai'];
 $tanggal_selesai = $data['tanggal_selesai'];
+$status_aktif = (int) $data['status_aktif'];
 
 // PROSES UPDATE
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -39,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama = trim($_POST['nama'] ?? '');
     $tanggal_mulai = $_POST['tanggal_mulai'] ?? '';
     $tanggal_selesai = $_POST['tanggal_selesai'] ?? '';
+    $status_aktif = (int) ($_POST['status_aktif'] ?? -1);
 
     if (
         $nama === '' ||
@@ -50,9 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($tanggal_selesai < $tanggal_mulai) {
         $pesan = 'Tanggal selesai tidak boleh sebelum tanggal mulai.';
 
+    } elseif (!in_array($status_aktif, [0, 1], true)) {
+        $pesan = 'Status tahun ajaran tidak valid.';
+
     } else {
 
-        // CEK NAMA TAHUN AJARAN DUPLIKAT
+        // CEK NAMA DUPLIKAT
         $cek = mysqli_prepare(
             $koneksi,
             "SELECT id FROM t_tahun_ajaran
@@ -71,41 +80,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         mysqli_stmt_close($cek);
 
-        // UPDATE DATA
+        // PROSES UPDATE
         if ($pesan === '') {
 
-            $stmt = mysqli_prepare(
-                $koneksi,
-                "UPDATE t_tahun_ajaran
-                 SET nama = ?, tanggal_mulai = ?, tanggal_selesai = ?
-                 WHERE id = ?"
-            );
+            mysqli_begin_transaction($koneksi);
 
-            if ($stmt) {
+            try {
+
+                // JIKA TAHUN AJARAN DIPILIH AKTIF
+                // NONAKTIFKAN TAHUN AJARAN LAIN TERLEBIH DAHULU
+                if ($status_aktif === 1) {
+
+                    $nonaktif = mysqli_prepare(
+                        $koneksi,
+                        "UPDATE t_tahun_ajaran
+                         SET status_aktif = 0
+                         WHERE id != ?"
+                    );
+
+                    if (!$nonaktif) {
+                        throw new Exception('Gagal menonaktifkan tahun ajaran sebelumnya.');
+                    }
+
+                    mysqli_stmt_bind_param($nonaktif, "i", $id);
+
+                    if (!mysqli_stmt_execute($nonaktif)) {
+                        throw new Exception('Gagal menonaktifkan tahun ajaran sebelumnya.');
+                    }
+
+                    mysqli_stmt_close($nonaktif);
+                }
+
+                // UPDATE TAHUN AJARAN YANG DIPILIH
+                $update = mysqli_prepare(
+                    $koneksi,
+                    "UPDATE t_tahun_ajaran
+                     SET nama = ?,
+                         tanggal_mulai = ?,
+                         tanggal_selesai = ?,
+                         status_aktif = ?
+                     WHERE id = ?"
+                );
+
+                if (!$update) {
+                    throw new Exception('Gagal menyiapkan proses update.');
+                }
 
                 mysqli_stmt_bind_param(
-                    $stmt,
-                    "sssi",
+                    $update,
+                    "sssii",
                     $nama,
                     $tanggal_mulai,
                     $tanggal_selesai,
+                    $status_aktif,
                     $id
                 );
 
-                if (mysqli_stmt_execute($stmt)) {
-                    mysqli_stmt_close($stmt);
-
-                    header('Location: kelola_tahun_ajaran.php');
-                    exit;
-
-                } else {
-                    $pesan = 'Gagal mengubah data tahun ajaran.';
+                if (!mysqli_stmt_execute($update)) {
+                    throw new Exception('Gagal mengubah data tahun ajaran.');
                 }
 
-                mysqli_stmt_close($stmt);
+                mysqli_stmt_close($update);
 
-            } else {
-                $pesan = 'Terjadi kesalahan pada database.';
+                // SIMPAN PERUBAHAN
+                mysqli_commit($koneksi);
+
+                $_SESSION['pesan'] = 'Data tahun ajaran berhasil diperbarui.';
+
+                header('Location: kelola_tahun_ajaran.php');
+                exit;
+
+            } catch (Exception $e) {
+
+                mysqli_rollback($koneksi);
+
+                $pesan = $e->getMessage();
             }
         }
     }
@@ -114,6 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -194,6 +244,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-right: 5px;
         }
 
+        .info-status {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 6px;
+        }
+
         @media (max-width: 767px) {
             .konten {
                 margin-left: 0;
@@ -219,12 +275,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- KONTEN UTAMA -->
     <div class="konten">
 
-        <!-- HEADER -->
         <div class="mb-3">
             <h2 class="judul">Edit Tahun Ajaran</h2>
 
             <p class="subjudul">
-                Ubah informasi data tahun ajaran sekolah.
+                Ubah informasi dan status tahun ajaran sekolah.
             </p>
         </div>
 
@@ -243,7 +298,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php } ?>
 
-        <!-- FORM EDIT -->
         <div class="card-custom">
 
             <div class="card-header-custom">
@@ -295,6 +349,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         >
                     </div>
 
+                    <!-- STATUS TAHUN AJARAN -->
+                    <div class="form-group">
+                        <label>Status Tahun Ajaran</label>
+
+                        <select
+                            name="status_aktif"
+                            class="form-control"
+                            required
+                        >
+                            <option value="1" <?= $status_aktif === 1 ? 'selected' : ''; ?>>
+                                Aktif
+                            </option>
+
+                            <option value="0" <?= $status_aktif === 0 ? 'selected' : ''; ?>>
+                                Nonaktif
+                            </option>
+                        </select>
+
+                        <small class="info-status">
+                            Jika tahun ajaran ini diaktifkan, tahun ajaran aktif sebelumnya
+                            akan otomatis menjadi nonaktif.
+                        </small>
+                    </div>
+
                     <hr>
 
                     <!-- TOMBOL -->
@@ -323,9 +401,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <!-- JAVASCRIPT -->
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
-
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
 
 </body>

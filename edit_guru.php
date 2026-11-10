@@ -15,7 +15,8 @@ if ($id <= 0) {
     die("ID guru tidak valid.");
 }
 
-$sql = "SELECT t_guru.*, t_users.name AS nama_akun,
+$sql = "SELECT t_guru.*, 
+               t_users.name AS nama_akun,
                t_users.email AS email_akun
         FROM t_guru
         LEFT JOIN t_users ON t_guru.user_id = t_users.id
@@ -155,16 +156,18 @@ if (!$guru) {
                         class="form-control"
                         value="<?= htmlspecialchars($guru['nip'] ?? ''); ?>"
                         maxlength="18"
-                        pattern="[0-9]{1,18}"
-                        inputmode="numeric"
+                        pattern="NIP[0-9]{1,15}"
+                        placeholder="NIP123456"
+                        title="NIP harus diawali NIP dan diikuti 1 sampai 15 angka"
                         required
                     >
 
                     <small class="text-muted">
-                        NIP maksimal 18 digit angka.
+                        Format NIP: NIP diikuti 1 sampai 15 angka.
+                        Contoh: NIP123456.
                     </small>
 
-                    <div id="peringatanNip" class="text-danger small"></div>
+                    <div id="peringatanNip" class="text-danger small mt-1"></div>
                 </div>
 
                 <div class="mb-3">
@@ -184,12 +187,12 @@ if (!$guru) {
 
                     <select name="status_aktif" class="form-select" required>
                         <option value="1"
-                            <?= ($guru['status_aktif'] == 1) ? 'selected' : ''; ?>>
+                            <?= ((int)$guru['status_aktif'] === 1) ? 'selected' : ''; ?>>
                             Aktif
                         </option>
 
                         <option value="0"
-                            <?= ($guru['status_aktif'] == 0) ? 'selected' : ''; ?>>
+                            <?= ((int)$guru['status_aktif'] === 0) ? 'selected' : ''; ?>>
                             Tidak Aktif
                         </option>
                     </select>
@@ -266,22 +269,30 @@ const nip = document.getElementById('nip');
 const peringatanNip = document.getElementById('peringatanNip');
 
 function validasiNip() {
-    if (!/^[0-9]{1,18}$/.test(nip.value)) {
+    nip.value = nip.value.toUpperCase();
+
+    if (!/^NIP[0-9]{1,15}$/.test(nip.value)) {
         peringatanNip.textContent =
-            'NIP wajib berisi angka dan maksimal 18 digit!';
+            'NIP harus diawali NIP dan diikuti 1 sampai 15 angka!';
+        nip.setCustomValidity('Format NIP tidak valid.');
         return false;
     }
 
     peringatanNip.textContent = '';
+    nip.setCustomValidity('');
     return true;
 }
 
-nip.addEventListener('input', validasiNip);
+nip.addEventListener('input', function() {
+    nip.value = nip.value.toUpperCase();
+    validasiNip();
+});
 
 formGuru.addEventListener('submit', function(e) {
     if (!validasiNip()) {
         e.preventDefault();
-        alert('Periksa kembali NIP guru!');
+        alert('Periksa kembali format NIP guru!');
+        nip.focus();
     }
 });
 </script>

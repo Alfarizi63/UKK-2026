@@ -1,196 +1,357 @@
-
+```php
 <?php
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
+// VALIDASI ID
 $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-$sql = "SELECT * FROM t_kelas_siswa WHERE id = $id";
-$query = mysqli_query($koneksi, $sql);
+if ($id <= 0) {
+    die('ID penempatan siswa tidak valid.');
+}
 
-if (!$query || mysqli_num_rows($query) == 0) {
+// AMBIL DATA PENEMPATAN
+$stmt = mysqli_prepare(
+    $koneksi,
+    "SELECT * FROM t_kelas_siswa WHERE id = ?"
+);
+
+mysqli_stmt_bind_param($stmt, "i", $id);
+mysqli_stmt_execute($stmt);
+
+$result = mysqli_stmt_get_result($stmt);
+$data = mysqli_fetch_assoc($result);
+
+mysqli_stmt_close($stmt);
+
+if (!$data) {
     die('Data penempatan siswa tidak ditemukan.');
 }
 
-$data = mysqli_fetch_assoc($query);
 $error = '';
 
+// NILAI AWAL FORM
+$siswa_id = (int) $data['siswa_id'];
+$kelas_id = (int) $data['kelas_id'];
+$tahun_ajaran_id = (int) $data['tahun_ajaran_id'];
+
+// PROSES UPDATE
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $siswa_id = (int) $_POST['siswa_id'];
-    $kelas_id = (int) $_POST['kelas_id'];
-    $tahun_ajaran_id = (int) $_POST['tahun_ajaran_id'];
+
+    $siswa_id = (int) ($_POST['siswa_id'] ?? 0);
+    $kelas_id = (int) ($_POST['kelas_id'] ?? 0);
+    $tahun_ajaran_id = (int) ($_POST['tahun_ajaran_id'] ?? 0);
 
     if ($siswa_id <= 0 || $kelas_id <= 0 || $tahun_ajaran_id <= 0) {
+
         $error = 'Semua data harus dipilih.';
+
     } else {
-        $cek = mysqli_query(
+
+        // CEK SISWA SUDAH DITEMPATKAN ATAU BELUM
+        $cek = mysqli_prepare(
             $koneksi,
-            "SELECT id FROM t_kelas_siswa
-             WHERE siswa_id = $siswa_id
-             AND tahun_ajaran_id = $tahun_ajaran_id
-             AND id != $id"
+            "SELECT id
+             FROM t_kelas_siswa
+             WHERE siswa_id = ?
+             AND tahun_ajaran_id = ?
+             AND id != ?
+             LIMIT 1"
         );
 
-        if (!$cek) {
-            $error = 'Gagal memeriksa data: ' . mysqli_error($koneksi);
-        } elseif (mysqli_num_rows($cek) > 0) {
+        mysqli_stmt_bind_param(
+            $cek,
+            "iii",
+            $siswa_id,
+            $tahun_ajaran_id,
+            $id
+        );
+
+        mysqli_stmt_execute($cek);
+
+        $hasil_cek = mysqli_stmt_get_result($cek);
+
+        if (mysqli_num_rows($hasil_cek) > 0) {
+
             $error = 'Siswa sudah ditempatkan pada tahun ajaran tersebut.';
-        } else {
-            $update = mysqli_query(
+
+        }
+
+        mysqli_stmt_close($cek);
+
+        // UPDATE DATA
+        if ($error === '') {
+
+            $update = mysqli_prepare(
                 $koneksi,
                 "UPDATE t_kelas_siswa
-                 SET siswa_id = $siswa_id,
-                     kelas_id = $kelas_id,
-                     tahun_ajaran_id = $tahun_ajaran_id
-                 WHERE id = $id"
+                 SET siswa_id = ?,
+                     kelas_id = ?,
+                     tahun_ajaran_id = ?
+                 WHERE id = ?"
             );
 
             if ($update) {
-                header('Location: kelola_penempatan_siswa.php');
-                exit;
+
+                mysqli_stmt_bind_param(
+                    $update,
+                    "iiii",
+                    $siswa_id,
+                    $kelas_id,
+                    $tahun_ajaran_id,
+                    $id
+                );
+
+                if (mysqli_stmt_execute($update)) {
+
+                    mysqli_stmt_close($update);
+
+                    $_SESSION['pesan'] = 'Data penempatan siswa berhasil diperbarui.';
+
+                    header('Location: kelola_penempatan_siswa.php');
+                    exit;
+
+                } else {
+
+                    $error = 'Gagal mengubah data penempatan siswa.';
+                }
+
+                mysqli_stmt_close($update);
+
             } else {
-                $error = 'Gagal mengubah data: ' . mysqli_error($koneksi);
+
+                $error = 'Terjadi kesalahan pada database.';
             }
         }
     }
 }
 
+// AMBIL DATA SISWA
 $siswa_query = mysqli_query(
     $koneksi,
-    "SELECT id, nis, nama FROM t_siswa ORDER BY nama ASC"
+    "SELECT id, nis, nama
+     FROM t_siswa
+     ORDER BY nama ASC"
 );
 
+// AMBIL DATA KELAS
 $kelas_query = mysqli_query(
     $koneksi,
-    "SELECT id, nama, tingkat, jurusan FROM t_kelas ORDER BY tingkat, jurusan, nama"
+    "SELECT id, nama, tingkat, jurusan
+     FROM t_kelas
+     ORDER BY tingkat, jurusan, nama"
 );
 
+// AMBIL DATA TAHUN AJARAN
 $ta_query = mysqli_query(
     $koneksi,
-    "SELECT id, nama FROM t_tahun_ajaran ORDER BY id DESC"
+    "SELECT id, nama
+     FROM t_tahun_ajaran
+     ORDER BY id DESC"
 );
+
+if (!$siswa_query || !$kelas_query || !$ta_query) {
+    die('Gagal mengambil data: ' . htmlspecialchars(mysqli_error($koneksi)));
+}
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Edit Penempatan Siswa</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+
+    <!-- BOOTSTRAP 4.1.3 -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+
+    <!-- FONT AWESOME -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
     <style>
-        body { background: #f8f9fa; margin: 0; }
-        .sidebar {
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            width: 250px;
-            background: #343a40;
-            padding: 20px 15px;
-            overflow-y: auto;
-            z-index: 1000;
+
+        * {
+            box-sizing: border-box;
         }
-        .sidebar h4 { color: white; font-weight: bold; margin-bottom: 20px; }
-        .sidebar a {
-            color: white;
-            display: block;
-            padding: 10px 14px;
-            border-radius: 4px;
-            text-decoration: none;
+
+        body {
+            margin: 0;
+            background: #f8f9fa;
+            font-family: Arial, sans-serif;
+            color: #343a40;
         }
-        .sidebar a:hover { background: #495057; }
-        .sidebar a.active { background: #007bff; }
+
         .konten {
-            margin-left: 250px;
-            width: calc(100% - 250px);
+            margin-left: 273px;
+            padding: 30px;
+            min-height: 100vh;
+        }
+
+        .judul {
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .subjudul {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        .card-custom {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .05);
+        }
+
+        .card-header-custom {
+            padding: 16px 20px;
+            background: #fff;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+        }
+
+        .card-body {
             padding: 25px;
-            min-width: 0;
         }
+
+        .form-group label {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-control {
+            font-size: 14px;
+            height: 40px;
+        }
+
+        .btn {
+            font-size: 13px;
+        }
+
+        .btn i {
+            margin-right: 5px;
+        }
+
         @media (max-width: 767px) {
-            .sidebar { position: relative; width: 100%; height: auto; }
-            .konten { margin-left: 0; width: 100%; padding: 15px; }
+
+            .konten {
+                margin-left: 0;
+                padding: 18px;
+            }
+
+            .judul {
+                font-size: 23px;
+            }
+
+            .card-body {
+                padding: 18px;
+            }
+
         }
+
     </style>
+
 </head>
+
 <body>
 
-<div class="sidebar">
-    <h4>My Website</h4>
-    <ul class="nav nav-pills flex-column">
-        <li class="nav-item mb-2"><a href="dashboard.php" class="nav-link">Dashboard</a></li>
-        <li class="nav-item mb-2"><a href="kelola_siswa.php" class="nav-link">Data Siswa</a></li>
-        <li class="nav-item mb-2"><a href="kelola_guru.php" class="nav-link">Data Guru</a></li>
-        <li class="nav-item mb-2"><a href="kelola_kelas.php" class="nav-link">Kelas</a></li>
-        <li class="nav-item mb-2"><a href="kelola_kategori_pelanggaran.php" class="nav-link">kelola kategori pelanggaran</a></li>
-        <li class="nav-item mb-2"><a href="kelola_tahun_ajaran.php" class="nav-link">kelola tahun ajaran</a></li>
-        <li class="nav-item mb-2"><a href="laporan.php" class="nav-link">Laporan</a></li>
-        <li class="nav-item mb-2"><a href="kelola_wali_kelas.php" class="nav-link">kelola wali kelas</a></li>
-        <li class="nav-item mb-2"><a href="kelola_penempatan_siswa.php" class="nav-link active">kelola penempatan siswa</a></li>
-        <li class="nav-item mb-2"><a href="rekap_point.php" class="nav-link">rekap poin</a></li>
-        <li class="nav-item mb-2"><a href="riwayat.php" class="nav-link">riwayat</a></li>
-        <li class="nav-item mb-2"><a href="kelola_jenis_pelanggaran.php" class="nav-link">kelola jenis pelanggaran</a></li>
-        <li class="nav-item mb-2"><a href="export_pelanggaran.php" class="nav-link">export pelanggaran</a></li>
-        <li class="nav-item mb-2"><a href="tentang_saya.php" class="nav-link">About Me</a></li>
-        <hr class="text-secondary">
-        <li class="nav-item"><a href="logout.php" class="nav-link text-danger">Logout</a></li>
-    </ul>
-</div>
+    <!-- SIDEBAR UTAMA -->
+    <?php include 'includes/sidebar.php'; ?>
 
-<main class="konten">
-    <h2>Edit Penempatan Siswa</h2>
+    <!-- KONTEN UTAMA -->
+    <main class="konten">
 
-    <?php if ($error !== ''): ?>
-        <div class="alert alert-danger">
-            <?= htmlspecialchars($error) ?>
-        </div>
-    <?php endif; ?>
+        <!-- HEADER -->
+        <div class="mb-3">
 
-    <form method="POST">
-        <div class="form-group">
-            <label>Siswa</label>
-            <select name="siswa_id" class="form-control" required>
-                <option value="">-- Pilih Siswa --</option>
-                <?php while ($siswa = mysqli_fetch_assoc($siswa_query)): ?>
-                    <option value="<?= (int) $siswa['id'] ?>"
-                        <?= ((int) $siswa['id'] === (int) $data['siswa_id']) ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($siswa['nis'] . ' - ' . $siswa['nama']) ?>
-                    </option>
-                <?php endwhile; ?>
-            </select>
+            <h2 class="judul">
+                Edit Penempatan Siswa
+            </h2>
+
+            <p class="subjudul">
+                Ubah data penempatan siswa ke kelas dan tahun ajaran.
+            </p>
+
         </div>
 
-        <div class="form-group">
-            <label>Kelas</label>
-            <select name="kelas_id" class="form-control" required>
-                <option value="">-- Pilih Kelas --</option>
-                <?php while ($kelas = mysqli_fetch_assoc($kelas_query)): ?>
-                    <option value="<?= (int) $kelas['id'] ?>"
-                        <?= ((int) $kelas['id'] === (int) $data['kelas_id']) ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($kelas['nama'] . ' - ' . $kelas['tingkat'] . ' - ' . $kelas['jurusan']) ?>
-                    </option>
-                <?php endwhile; ?>
-            </select>
-        </div>
+        <!-- PESAN ERROR -->
+        <?php if ($error !== ''): ?>
 
-        <div class="form-group">
-            <label>Tahun Ajaran</label>
-            <select name="tahun_ajaran_id" class="form-control" required>
-                <option value="">-- Pilih Tahun Ajaran --</option>
-                <?php while ($ta = mysqli_fetch_assoc($ta_query)): ?>
-                    <option value="<?= (int) $ta['id'] ?>"
-                        <?= ((int) $ta['id'] === (int) $data['tahun_ajaran_id']) ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($ta['nama']) ?>
-                    </option>
-                <?php endwhile; ?>
-            </select>
-        </div>
+            <div class="alert alert-danger alert-dismissible fade show">
 
-        <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-        <a href="kelola_penempatan_siswa.php" class="btn btn-secondary">Batal</a>
-    </form>
-</main>
+                <i class="fas fa-exclamation-circle mr-1"></i>
 
-</body>
-</html>
+                <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
+
+                <button type="button"
+                        class="close"
+                        data-dismiss="alert">
+
+                    <span>&times;</span>
+
+                </button>
+
+            </div>
+
+        <?php endif; ?>
+
+        <!-- CARD FORM -->
+        <div class="card-custom">
+
+            <div class="card-header-custom">
+
+                <i class="fas fa-edit text-primary mr-2"></i>
+
+                Form Edit Penempatan Siswa
+
+            </div>
+
+            <div class="card-body">
+
+                <form method="POST">
+
+                    <!-- SISWA -->
+                    <div class="form-group">
+
+                        <label>Siswa</label>
+
+                        <select name="siswa_id"
+                                class="form-control"
+                                required>
+
+                            <option value="">
+                                -- Pilih Siswa --
+                            </option>
+
+                            <?php while ($siswa = mysqli_fetch_assoc($siswa_query)): ?>
+
+                                <option
+                                    value="<?= (int) $siswa['id']; ?>"
+                                    <?= ((int) $siswa['id'] === $siswa_id) ? 'selected' : ''; ?>>
+
+                                    <?= htmlspecialchars(
+                                        $siswa['nis'] . ' - ' . $siswa['nama'],
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    ); ?>
+
+                                </option>
+
+                            <?php endwhile; ?>
+
+                        </select>
+
+                    </div>
+
+                    <!-- KELAS -->
+                    <div class="form-group">
+
+                        <label
