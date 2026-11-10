@@ -22,7 +22,6 @@ $menu_admin = [
     ['Wali Kelas', 'kelola_wali_kelas.php'],
     ['Penempatan Siswa', 'kelola_penempatan_siswa.php'],
     ['Jenis Pelanggaran', 'kelola_jenis_pelanggaran.php'],
-    ['import guru', 'import_guru.php'],
     ['expor', 'export.php'],
     ['About Me', 'tentang_saya.php']
 ];
