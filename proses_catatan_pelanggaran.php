@@ -1,11 +1,11 @@
 
 <?php
-include 'includes/cek_session.php';
-include 'config/koneksi.php';
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+include 'includes/cek_session.php';
+include 'config/koneksi.php';
 
 $role = $_SESSION['role'] ?? '';
 $email = $_SESSION['email'] ?? '';
@@ -24,7 +24,7 @@ if (!in_array($role, ['admin', 'guru', 'wali_kelas'], true)) {
     exit;
 }
 
-// Pastikan request POST
+// Pastikan POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: catatan_pelanggaran.php');
     exit;
@@ -48,7 +48,7 @@ if (
 }
 
 // Validasi tanggal
-$tanggal_obj = DateTime::createFromFormat('Y-m-d', $tanggal);
+$tanggal_obj = DateTime::createFromFormat('!Y-m-d', $tanggal);
 
 if (!$tanggal_obj || $tanggal_obj->format('Y-m-d') !== $tanggal) {
     kembali('Format tanggal tidak valid.');
@@ -65,8 +65,8 @@ $stmt = mysqli_prepare($koneksi, "
 mysqli_stmt_bind_param($stmt, 'i', $tahun_ajaran_id);
 mysqli_stmt_execute($stmt);
 
-$hasil_tahun = mysqli_stmt_get_result($stmt);
-$data_tahun = mysqli_fetch_assoc($hasil_tahun);
+$hasil = mysqli_stmt_get_result($stmt);
+$data_tahun = mysqli_fetch_assoc($hasil);
 
 mysqli_stmt_close($stmt);
 
@@ -74,12 +74,14 @@ if (!$data_tahun) {
     kembali('Tahun ajaran tidak aktif atau tidak ditemukan.');
 }
 
-// Ambil identitas guru pencatat
+// Identitas guru
 if ($role === 'admin') {
 
     $guru_id = (int)($_POST['guru_id'] ?? 0);
 
 } else {
+
+    $data_guru = null;
 
     if ($email !== '') {
         $stmt = mysqli_prepare($koneksi, "
@@ -90,8 +92,15 @@ if ($role === 'admin') {
         ");
 
         mysqli_stmt_bind_param($stmt, 's', $email);
+        mysqli_stmt_execute($stmt);
 
-    } else {
+        $hasil = mysqli_stmt_get_result($stmt);
+        $data_guru = mysqli_fetch_assoc($hasil);
+
+        mysqli_stmt_close($stmt);
+    }
+
+    if (!$data_guru && $nama_login !== '') {
         $stmt = mysqli_prepare($koneksi, "
             SELECT id
             FROM t_guru
@@ -100,14 +109,13 @@ if ($role === 'admin') {
         ");
 
         mysqli_stmt_bind_param($stmt, 's', $nama_login);
+        mysqli_stmt_execute($stmt);
+
+        $hasil = mysqli_stmt_get_result($stmt);
+        $data_guru = mysqli_fetch_assoc($hasil);
+
+        mysqli_stmt_close($stmt);
     }
-
-    mysqli_stmt_execute($stmt);
-
-    $hasil_guru = mysqli_stmt_get_result($stmt);
-    $data_guru = mysqli_fetch_assoc($hasil_guru);
-
-    mysqli_stmt_close($stmt);
 
     $guru_id = (int)($data_guru['id'] ?? 0);
 }
@@ -116,7 +124,7 @@ if ($guru_id <= 0) {
     kembali('Data guru pencatat tidak ditemukan.');
 }
 
-// Ambil nama guru
+// Validasi guru
 $stmt = mysqli_prepare($koneksi, "
     SELECT id, nama
     FROM t_guru
@@ -127,8 +135,8 @@ $stmt = mysqli_prepare($koneksi, "
 mysqli_stmt_bind_param($stmt, 'i', $guru_id);
 mysqli_stmt_execute($stmt);
 
-$hasil_guru = mysqli_stmt_get_result($stmt);
-$data_guru = mysqli_fetch_assoc($hasil_guru);
+$hasil = mysqli_stmt_get_result($stmt);
+$data_guru = mysqli_fetch_assoc($hasil);
 
 mysqli_stmt_close($stmt);
 
@@ -165,8 +173,8 @@ mysqli_stmt_bind_param(
 
 mysqli_stmt_execute($stmt);
 
-$hasil_siswa = mysqli_stmt_get_result($stmt);
-$data_siswa = mysqli_fetch_assoc($hasil_siswa);
+$hasil = mysqli_stmt_get_result($stmt);
+$data_siswa = mysqli_fetch_assoc($hasil);
 
 mysqli_stmt_close($stmt);
 
@@ -178,7 +186,7 @@ $nama_siswa = $data_siswa['nama_siswa'];
 $kelas_id = (int)$data_siswa['kelas_id'];
 $nama_kelas = $data_siswa['nama_kelas'];
 
-// Wali kelas hanya boleh mencatat siswa kelas binaannya
+// Validasi wali kelas
 if ($role === 'wali_kelas') {
 
     $stmt = mysqli_prepare($koneksi, "
@@ -201,8 +209,8 @@ if ($role === 'wali_kelas') {
 
     mysqli_stmt_execute($stmt);
 
-    $hasil_wali = mysqli_stmt_get_result($stmt);
-    $data_wali = mysqli_fetch_assoc($hasil_wali);
+    $hasil = mysqli_stmt_get_result($stmt);
+    $data_wali = mysqli_fetch_assoc($hasil);
 
     mysqli_stmt_close($stmt);
 
@@ -211,7 +219,7 @@ if ($role === 'wali_kelas') {
     }
 }
 
-// Ambil jenis pelanggaran dari tabel master
+// Ambil poin langsung dari database
 $stmt = mysqli_prepare($koneksi, "
     SELECT
         id,
@@ -227,8 +235,8 @@ $stmt = mysqli_prepare($koneksi, "
 mysqli_stmt_bind_param($stmt, 'i', $pelanggaran_id);
 mysqli_stmt_execute($stmt);
 
-$hasil_pelanggaran = mysqli_stmt_get_result($stmt);
-$data_pelanggaran = mysqli_fetch_assoc($hasil_pelanggaran);
+$hasil = mysqli_stmt_get_result($stmt);
+$data_pelanggaran = mysqli_fetch_assoc($hasil);
 
 mysqli_stmt_close($stmt);
 
@@ -240,7 +248,7 @@ $nama_pelanggaran = $data_pelanggaran['nama'];
 $poin = (int)$data_pelanggaran['poin'];
 $pelanggaran_kategori_id = (int)$data_pelanggaran['pelanggaran_kategori_id'];
 
-// Simpan catatan pelanggaran
+// Simpan catatan
 $stmt = mysqli_prepare($koneksi, "
     INSERT INTO t_pelanggaran_siswa (
         tahun_ajaran_id,
@@ -266,7 +274,7 @@ $stmt = mysqli_prepare($koneksi, "
 ");
 
 if (!$stmt) {
-    kembali('Query penyimpanan gagal disiapkan: ' . mysqli_error($koneksi));
+    kembali('Query penyimpanan gagal disiapkan.');
 }
 
 mysqli_stmt_bind_param(
@@ -291,7 +299,8 @@ if (mysqli_stmt_execute($stmt)) {
 
     mysqli_stmt_close($stmt);
 
-    $_SESSION['success_catatan'] = 'Catatan pelanggaran berhasil disimpan.';
+    $_SESSION['success_catatan'] =
+        'Catatan pelanggaran berhasil disimpan.';
 
     header('Location: catatan_pelanggaran.php');
     exit;
@@ -299,6 +308,7 @@ if (mysqli_stmt_execute($stmt)) {
 } else {
 
     $pesan_error = mysqli_stmt_error($stmt);
+
     mysqli_stmt_close($stmt);
 
     kembali('Gagal menyimpan catatan: ' . $pesan_error);

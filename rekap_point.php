@@ -1,6 +1,7 @@
 
 <?php
 include 'includes/cek_session.php';
+include 'config/koneksi.php';
 
 $role = $_SESSION['role'] ?? '';
 
@@ -9,8 +10,37 @@ if (!in_array($role, ['admin', 'guru', 'wali_kelas'], true)) {
     exit;
 }
 
-include 'config/koneksi.php';
+// Ambil ID guru berdasarkan email akun
+$guru_id = 0;
 
+if ($role !== 'admin') {
+    $email = trim($_SESSION['email'] ?? '');
+
+    if ($email === '') {
+        die('Email akun tidak ditemukan dalam session.');
+    }
+
+    $stmtGuru = mysqli_prepare(
+        $koneksi,
+        "SELECT id FROM t_guru WHERE email = ? LIMIT 1"
+    );
+
+    mysqli_stmt_bind_param($stmtGuru, "s", $email);
+    mysqli_stmt_execute($stmtGuru);
+
+    $hasilGuru = mysqli_stmt_get_result($stmtGuru);
+    $dataGuru = mysqli_fetch_assoc($hasilGuru);
+
+    mysqli_stmt_close($stmtGuru);
+
+    if (!$dataGuru) {
+        die('Data guru tidak ditemukan. Pastikan email akun sama dengan email pada data guru.');
+    }
+
+    $guru_id = (int) $dataGuru['id'];
+}
+
+// Query utama
 $sql = "
     SELECT
         s.id,
@@ -21,14 +51,80 @@ $sql = "
     FROM t_siswa s
     LEFT JOIN t_pelanggaran_siswa ps
         ON ps.siswa_id = s.id
+";
+
+// Filter khusus guru
+if ($role === 'guru') {
+    $sql .= "
+        AND ps.guru_id = ?
+    ";
+}
+
+// Filter khusus wali kelas
+if ($role === 'wali_kelas') {
+    $sql .= "
+        AND ps.guru_id = ?
+        AND EXISTS (
+            SELECT 1
+            FROM t_wali_kelas wk
+            WHERE wk.guru_id = ?
+              AND wk.kelas_id = ps.kelas_id
+              AND wk.tahun_ajaran_id = ps.tahun_ajaran_id
+              AND wk.status_aktif = 1
+        )
+    ";
+}
+
+$sql .= "
+    WHERE 1 = 1
+";
+
+// Wali kelas hanya melihat siswa kelas binaannya
+if ($role === 'wali_kelas') {
+    $sql .= "
+        AND EXISTS (
+            SELECT 1
+            FROM t_kelas_siswa ks
+            INNER JOIN t_wali_kelas wk
+                ON wk.kelas_id = ks.kelas_id
+               AND wk.tahun_ajaran_id = ks.tahun_ajaran_id
+            WHERE ks.siswa_id = s.id
+              AND wk.guru_id = ?
+              AND wk.status_aktif = 1
+        )
+    ";
+}
+
+$sql .= "
     GROUP BY s.id, s.nis, s.nama
     ORDER BY total_poin DESC, s.nama ASC
 ";
 
-$query = mysqli_query($koneksi, $sql);
+$stmt = mysqli_prepare($koneksi, $sql);
+
+if (!$stmt) {
+    die('Query gagal: ' . mysqli_error($koneksi));
+}
+
+// Bind parameter sesuai role
+if ($role === 'guru') {
+    mysqli_stmt_bind_param($stmt, "i", $guru_id);
+} elseif ($role === 'wali_kelas') {
+    mysqli_stmt_bind_param(
+        $stmt,
+        "iiii",
+        $guru_id,
+        $guru_id,
+        $guru_id,
+        $guru_id
+    );
+}
+
+mysqli_stmt_execute($stmt);
+$query = mysqli_stmt_get_result($stmt);
 
 if (!$query) {
-    die('Query gagal: ' . mysqli_error($koneksi));
+    die('Gagal mengambil data rekap poin.');
 }
 ?>
 
@@ -112,10 +208,6 @@ if (!$query) {
             vertical-align: middle;
         }
 
-        .table tbody tr:nth-child(odd) {
-            background: #ededed;
-        }
-
         .pagination-container {
             display: flex;
             justify-content: space-between;
@@ -137,8 +229,7 @@ if (!$query) {
             .sidebar,
             .toolbar,
             .pagination-container,
-            .tombol-aksi,
-            .tombol-cetak {
+            .tombol-aksi {
                 display: none !important;
             }
 
@@ -197,7 +288,7 @@ if (!$query) {
             </a>
 
             <button type="button" onclick="window.print()"
-                    class="btn btn-primary btn-sm tombol-cetak">
+                    class="btn btn-primary btn-sm">
                 Cetak Laporan
             </button>
         </div>
@@ -250,6 +341,14 @@ if (!$query) {
                         <td><?= (int) $data['total_poin']; ?></td>
                     </tr>
                     <?php } ?>
+
+                    <?php if (mysqli_num_rows($query) === 0) { ?>
+                    <tr>
+                        <td colspan="5" class="text-center">
+                            Belum ada data rekap pelanggaran.
+                        </td>
+                    </tr>
+                    <?php } ?>
                 </tbody>
             </table>
         </div>
@@ -270,7 +369,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const info = document.getElementById('infoTabel');
     const pagination = document.getElementById('pagination');
 
-    const semuaBaris = Array.from(tabel.querySelectorAll('tbody tr'));
+    const semuaBaris = Array.from(
+        tabel.querySelectorAll('tbody tr')
+    ).filter(function (baris) {
+        return baris.cells.length === 5;
+    });
 
     let halaman = 1;
 
@@ -283,7 +386,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const perHalaman = parseInt(jumlahData.value, 10);
         const totalData = barisCocok.length;
-        const totalHalaman = Math.max(1, Math.ceil(totalData / perHalaman));
+        const totalHalaman = Math.max(
+            1,
+            Math.ceil(totalData / perHalaman)
+        );
 
         if (halaman > totalHalaman) {
             halaman = totalHalaman;
@@ -346,7 +452,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        buatTombol('Berikutnya', halaman + 1, halaman >= totalHalaman, false);
+        buatTombol(
+            'Berikutnya',
+            halaman + 1,
+            halaman >= totalHalaman,
+            false
+        );
     }
 
     pencarian.addEventListener('input', function () {
@@ -365,3 +476,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </body>
 </html>
+
+<?php
+mysqli_stmt_close($stmt);
+?>
