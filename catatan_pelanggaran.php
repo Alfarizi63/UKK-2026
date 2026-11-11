@@ -1,4 +1,3 @@
-
 <?php
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
@@ -327,6 +326,8 @@ function e($value)
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
 
 <style>
@@ -469,6 +470,15 @@ body {
     border-radius: 8px;
 }
 
+.btn-tambah {
+    padding: 11px 18px;
+    font-weight: 600;
+}
+
+#formCatatan {
+    scroll-margin-top: 20px;
+}
+
 @media(max-width:768px) {
 
     .main-content {
@@ -488,16 +498,27 @@ body {
 
 <div class="main-content">
 
-    <!-- JUDUL -->
-    <div class="mb-4">
+    <!-- JUDUL DAN TOMBOL TAMBAH -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
 
-        <h3 class="fw-bold mb-1">
-            Catatan Pelanggaran
-        </h3>
+        <div>
+            <h3 class="fw-bold mb-1">
+                Catatan Pelanggaran
+            </h3>
 
-        <p class="text-muted mb-0">
-            Pencatatan dan riwayat pelanggaran siswa
-        </p>
+            <p class="text-muted mb-0">
+                Pencatatan dan riwayat pelanggaran siswa
+            </p>
+        </div>
+
+        <?php if ($tahun_ajaran_id > 0 && ($role === 'admin' || $guru_id > 0)): ?>
+
+            <a href="#formCatatan" class="btn btn-dark btn-tambah">
+                <i class="bi bi-plus-circle me-1"></i>
+                Tambah Catatan Pelanggaran
+            </a>
+
+        <?php endif; ?>
 
     </div>
 
@@ -579,13 +600,13 @@ body {
 
     <?php else: ?>
 
-    <div class="card">
+    <div class="card" id="formCatatan">
 
         <div class="card-header">
 
             <h5 class="mb-0">
-                <i class="bi bi-plus-circle"></i>
-                Form Catatan Pelanggaran
+                <i class="bi bi-plus-circle me-1"></i>
+                Tambah Catatan Pelanggaran
             </h5>
 
         </div>
@@ -791,6 +812,7 @@ body {
                         class="btn btn-dark"
                         <?= (empty($data_siswa) || empty($data_pelanggaran)) ? 'disabled' : ''; ?>>
 
+                    <i class="bi bi-save me-1"></i>
                     Simpan Catatan
 
                 </button>
@@ -1078,6 +1100,15 @@ $(document).ready(function () {
         } else {
             $('#hasilKosong').hide();
         }
+
+    });
+
+    // TOMBOL TAMBAH CATATAN
+    $('a[href="#formCatatan"]').on('click', function () {
+
+        setTimeout(function () {
+            $('#formCatatan').addClass('border border-dark');
+        }, 300);
 
     });
 

@@ -9,6 +9,8 @@ if (session_status() === PHP_SESSION_NONE) {
 include 'config/koneksi.php';
 
 $role = $_SESSION['role'] ?? '';
+$nama_login = $_SESSION['name'] ?? '';
+$email = trim($_SESSION['email'] ?? '');
 
 if (!in_array($role, ['admin', 'guru', 'wali_kelas'], true)) {
     header('Location: dashboard.php');
@@ -16,21 +18,22 @@ if (!in_array($role, ['admin', 'guru', 'wali_kelas'], true)) {
 }
 
 // ========================================
-// IDENTITAS AKUN LOGIN
+// IDENTITAS GURU
 // ========================================
 
-$email = trim($_SESSION['email'] ?? '');
 $guru_id = 0;
+$kelas_wali_id = 0;
+$tahun_ajaran_aktif_id = 0;
+$akses_wali_kelas = false;
 
 if ($role === 'guru' || $role === 'wali_kelas') {
 
-    if ($email === '') {
-        die('Email akun tidak ditemukan. Silakan login ulang.');
-    }
-
     $stmtGuru = mysqli_prepare(
         $koneksi,
-        "SELECT id FROM t_guru WHERE email = ? LIMIT 1"
+        "SELECT id
+         FROM t_guru
+         WHERE email = ?
+         LIMIT 1"
     );
 
     if (!$stmtGuru) {
@@ -45,15 +48,112 @@ if ($role === 'guru' || $role === 'wali_kelas') {
 
     mysqli_stmt_close($stmtGuru);
 
+    // Jika email tidak cocok, coba berdasarkan nama
+    if (!$dataGuru && $nama_login !== '') {
+
+        $stmtGuru = mysqli_prepare(
+            $koneksi,
+            "SELECT id
+             FROM t_guru
+             WHERE nama = ?
+             LIMIT 1"
+        );
+
+        if (!$stmtGuru) {
+            die('Gagal memeriksa data guru: ' . mysqli_error($koneksi));
+        }
+
+        mysqli_stmt_bind_param($stmtGuru, 's', $nama_login);
+        mysqli_stmt_execute($stmtGuru);
+
+        $resultGuru = mysqli_stmt_get_result($stmtGuru);
+        $dataGuru = mysqli_fetch_assoc($resultGuru);
+
+        mysqli_stmt_close($stmtGuru);
+    }
+
     if (!$dataGuru) {
-        die('Data guru tidak ditemukan. Pastikan email akun sama dengan email pada data guru.');
+        die('Data guru tidak ditemukan. Pastikan email atau nama akun sesuai dengan data guru.');
     }
 
     $guru_id = (int)$dataGuru['id'];
+
+    // ========================================
+    // AMBIL TAHUN AJARAN AKTIF
+    // ========================================
+
+    $queryTahun = mysqli_query(
+        $koneksi,
+        "SELECT id
+         FROM t_tahun_ajaran
+         WHERE status_aktif = 1
+         LIMIT 1"
+    );
+
+    if (!$queryTahun) {
+        die('Gagal mengambil tahun ajaran: ' . mysqli_error($koneksi));
+    }
+
+    $dataTahun = mysqli_fetch_assoc($queryTahun);
+
+    if ($dataTahun) {
+        $tahun_ajaran_aktif_id = (int)$dataTahun['id'];
+    }
+
+    // ========================================
+    // CEK PENUGASAN WALI KELAS
+    // ========================================
+
+    if ($tahun_ajaran_aktif_id > 0) {
+
+        $stmtWali = mysqli_prepare(
+            $koneksi,
+            "SELECT
+                wk.kelas_id
+             FROM t_wali_kelas wk
+             INNER JOIN t_tahun_ajaran ta
+                ON ta.id = wk.tahun_ajaran_id
+             WHERE wk.guru_id = ?
+               AND wk.tahun_ajaran_id = ?
+               AND wk.status_aktif = 1
+               AND ta.status_aktif = 1
+             LIMIT 1"
+        );
+
+        if (!$stmtWali) {
+            die('Gagal memeriksa penugasan wali kelas: ' . mysqli_error($koneksi));
+        }
+
+        mysqli_stmt_bind_param(
+            $stmtWali,
+            'ii',
+            $guru_id,
+            $tahun_ajaran_aktif_id
+        );
+
+        mysqli_stmt_execute($stmtWali);
+
+        $resultWali = mysqli_stmt_get_result($stmtWali);
+        $dataWali = mysqli_fetch_assoc($resultWali);
+
+        mysqli_stmt_close($stmtWali);
+
+        if ($dataWali) {
+            $akses_wali_kelas = true;
+            $kelas_wali_id = (int)$dataWali['kelas_id'];
+        }
+    }
+
+    // Akun wali kelas wajib memiliki penugasan aktif
+    if ($role === 'wali_kelas' && !$akses_wali_kelas) {
+        header('Location: dashboard.php');
+        exit;
+    }
 }
 
 // ========================================
 // QUERY RIWAYAT PELANGGARAN
+// HANYA YANG SUDAH DITINDAKLANJUTI
 // ========================================
 
 $sql = "
@@ -73,29 +173,33 @@ $sql = "
     FROM t_pelanggaran_siswa ps
     LEFT JOIN t_tahun_ajaran ta
         ON ta.id = ps.tahun_ajaran_id
+    WHERE LOWER(TRIM(COALESCE(ps.status, ''))) = 'sudah ditindaklanjuti'
 ";
 
-if ($role === 'guru') {
+// ========================================
+// FILTER ADMIN / WALI KELAS / GURU
+// ========================================
 
-    // Guru hanya melihat laporan miliknya sendiri
+if ($role === 'admin') {
+
+    // Admin melihat seluruh riwayat.
+
+} elseif ($akses_wali_kelas) {
+
+    // Wali kelas melihat seluruh riwayat
+    // siswa di kelas tanggung jawabnya.
+
     $sql .= "
-        WHERE ps.guru_id = ?
+        AND ps.kelas_id = ?
+        AND ps.tahun_ajaran_id = ?
     ";
 
-} elseif ($role === 'wali_kelas') {
+} elseif ($role === 'guru') {
 
-    // Wali kelas hanya melihat laporan miliknya sendiri
-    // untuk siswa yang berada di kelas tanggung jawabnya
+    // Guru biasa hanya melihat catatan miliknya sendiri.
+
     $sql .= "
-        WHERE ps.guru_id = ?
-        AND EXISTS (
-            SELECT 1
-            FROM t_wali_kelas wk
-            WHERE wk.guru_id = ?
-              AND wk.kelas_id = ps.kelas_id
-              AND wk.tahun_ajaran_id = ps.tahun_ajaran_id
-              AND wk.status_aktif = 1
-        )
+        AND ps.guru_id = ?
     ";
 }
 
@@ -109,13 +213,26 @@ if (!$stmt) {
     die('Gagal menyiapkan query: ' . mysqli_error($koneksi));
 }
 
-if ($role === 'guru') {
+// ========================================
+// BIND PARAMETER
+// ========================================
 
-    mysqli_stmt_bind_param($stmt, 'i', $guru_id);
+if ($akses_wali_kelas) {
 
-} elseif ($role === 'wali_kelas') {
+    mysqli_stmt_bind_param(
+        $stmt,
+        'ii',
+        $kelas_wali_id,
+        $tahun_ajaran_aktif_id
+    );
 
-    mysqli_stmt_bind_param($stmt, 'ii', $guru_id, $guru_id);
+} elseif ($role === 'guru') {
+
+    mysqli_stmt_bind_param(
+        $stmt,
+        'i',
+        $guru_id
+    );
 }
 
 mysqli_stmt_execute($stmt);
@@ -282,7 +399,7 @@ if (!$query) {
         </h2>
 
         <p class="text-muted">
-            Daftar catatan pelanggaran siswa berdasarkan hak akses akun.
+            Daftar catatan pelanggaran siswa yang sudah selesai ditindaklanjuti.
         </p>
 
         <?php if ($role !== 'admin'): ?>
@@ -292,7 +409,12 @@ if (!$query) {
                 <strong>
                     <?= htmlspecialchars($_SESSION['name'] ?? $role); ?>
                 </strong>
-                (<?= htmlspecialchars($role); ?>)
+
+                <?php if ($akses_wali_kelas): ?>
+                    (Wali Kelas)
+                <?php else: ?>
+                    (Guru)
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 
@@ -356,15 +478,6 @@ if (!$query) {
 
                         <?php while ($row = mysqli_fetch_assoc($query)): ?>
 
-                            <?php
-                            $status = strtolower(
-                                trim($row['status'] ?? '')
-                            );
-
-                            $sudahDitindaklanjuti =
-                                ($status === 'sudah ditindaklanjuti');
-                            ?>
-
                             <tr>
 
                                 <td>
@@ -396,21 +509,9 @@ if (!$query) {
                                 </td>
 
                                 <td>
-
-                                    <?php if ($sudahDitindaklanjuti): ?>
-
-                                        <span class="badge bg-success">
-                                            Sudah Ditindaklanjuti
-                                        </span>
-
-                                    <?php else: ?>
-
-                                        <span class="badge bg-warning text-dark">
-                                            Belum Ditindaklanjuti
-                                        </span>
-
-                                    <?php endif; ?>
-
+                                    <span class="badge bg-success">
+                                        Sudah Ditindaklanjuti
+                                    </span>
                                 </td>
 
                             </tr>
@@ -421,7 +522,7 @@ if (!$query) {
 
                         <tr class="baris-kosong">
                             <td colspan="7" class="text-center">
-                                Belum ada riwayat pelanggaran.
+                                Belum ada riwayat pelanggaran yang selesai ditindaklanjuti.
                             </td>
                         </tr>
 

@@ -12,26 +12,19 @@ $error = $_SESSION['error_tindakan'] ?? '';
 
 unset($_SESSION['success_tindakan'], $_SESSION['error_tindakan']);
 
-$daftar_tindakan = [
-    'Teguran Lisan',
-    'Teguran Tertulis',
-    'Pembinaan BK',
-    'Pemanggilan Orang Tua',
-    'Rekomendasi Tindakan Lanjutan'
-];
-
-// Batas tindakan berdasarkan total poin
-function batasTindakan($poin)
+// Menentukan tindakan otomatis berdasarkan poin
+function tentukanTindakan($poin)
 {
-    if ($poin <= 20) return 0;
-    if ($poin <= 40) return 1;
-    if ($poin <= 60) return 2;
-    if ($poin <= 80) return 3;
+    if ($poin <= 0) return '-';
+    if ($poin <= 20) return 'Teguran Lisan';
+    if ($poin <= 40) return 'Teguran Tertulis';
+    if ($poin <= 60) return 'Pembinaan BK';
+    if ($poin <= 80) return 'Pemanggilan Orang Tua';
 
-    return 4;
+    return 'Rekomendasi Tindakan Lanjutan';
 }
 
-// Ambil catatan pelanggaran dan akumulasi poin siswa
+// Ambil data pelanggaran yang belum ditindaklanjuti
 $sql = "
     SELECT
         ps.*,
@@ -45,6 +38,7 @@ $sql = "
     FROM t_pelanggaran_siswa ps
     LEFT JOIN t_tahun_ajaran ta
         ON ta.id = ps.tahun_ajaran_id
+    WHERE LOWER(TRIM(COALESCE(ps.status, ''))) != 'sudah ditindaklanjuti'
     ORDER BY ps.tanggal DESC, ps.id DESC
 ";
 
@@ -174,12 +168,12 @@ if (!$query) {
             display: none;
         }
 
-        .aturan-table td {
-            padding: 7px 10px;
-        }
-
         .aturan-table {
             font-size: 12px;
+        }
+
+        .aturan-table td {
+            padding: 7px 10px;
         }
 
         @media (max-width: 768px) {
@@ -202,7 +196,7 @@ if (!$query) {
     </h2>
 
     <p class="text-muted mb-4" style="font-size:13px;">
-        Kelola tindakan pembinaan siswa berdasarkan akumulasi poin.
+        Tindakan pembinaan ditentukan otomatis berdasarkan total poin siswa.
     </p>
 
     <?php if ($success): ?>
@@ -224,12 +218,13 @@ if (!$query) {
 
         <div class="card-header bg-primary text-white">
             <i class="fas fa-list-ol"></i>
-            Aturan Tindakan Berdasarkan Poin
+            Aturan Tindakan Otomatis
         </div>
 
         <div class="card-body">
 
             <div class="table-responsive">
+
                 <table class="table table-bordered aturan-table">
 
                     <tbody>
@@ -260,17 +255,18 @@ if (!$query) {
                     </tbody>
 
                 </table>
+
             </div>
 
         </div>
     </div>
 
-    <!-- DATA PELANGGARAN -->
+    <!-- DATA TINDAKAN -->
     <div class="card shadow-sm">
 
         <div class="card-header bg-white">
             <i class="fas fa-users"></i>
-            Data Catatan Pelanggaran
+            Data Tindakan Siswa
         </div>
 
         <div class="card-body">
@@ -286,8 +282,9 @@ if (!$query) {
                             <th>Kelas</th>
                             <th>Pelanggaran</th>
                             <th>Total Poin</th>
+                            <th>Tindakan Otomatis</th>
                             <th>Status</th>
-                            <th width="130">Tindakan</th>
+                            <th width="130">Aksi</th>
                         </tr>
                     </thead>
 
@@ -301,13 +298,7 @@ if (!$query) {
 
                             <?php
                             $total_poin = (int)$row['total_poin'];
-                            $batas = batasTindakan($total_poin);
-
-                            $status = strtolower(trim($row['status'] ?? ''));
-
-                            $sudah_ditindaklanjuti =
-                                ($status === 'sudah ditindaklanjuti');
-
+                            $tindakan_otomatis = tentukanTindakan($total_poin);
                             $id_catatan = (int)$row['id'];
                             ?>
 
@@ -336,137 +327,89 @@ if (!$query) {
                                 </td>
 
                                 <td>
+                                    <?php if ($total_poin > 0): ?>
 
-                                    <?php if ($sudah_ditindaklanjuti): ?>
-
-                                        <span class="badge badge-success">
-                                            Sudah Ditindaklanjuti
+                                        <span class="badge badge-primary">
+                                            <?= htmlspecialchars($tindakan_otomatis); ?>
                                         </span>
 
                                     <?php else: ?>
 
-                                        <span class="badge badge-warning">
-                                            Belum Ditindaklanjuti
+                                        <span class="text-muted">
+                                            Belum tersedia
                                         </span>
 
                                     <?php endif; ?>
+                                </td>
 
+                                <td>
+                                    <span class="badge badge-warning">
+                                        Belum Ditindaklanjuti
+                                    </span>
                                 </td>
 
                                 <td>
 
-                                    <?php if (!$sudah_ditindaklanjuti): ?>
-
-                                        <?php if ($total_poin <= 0): ?>
-
-                                            <span class="text-muted">
-                                                Poin belum tersedia
-                                            </span>
-
-                                        <?php else: ?>
-
-                                            <details>
-
-                                                <summary class="btn btn-primary btn-tindakan">
-                                                    <i class="fas fa-edit"></i>
-                                                    Atur Tindakan
-                                                </summary>
-
-                                                <form action="proses_tindakan.php"
-                                                      method="POST"
-                                                      class="form-detail">
-
-                                                    <input type="hidden"
-                                                           name="id"
-                                                           value="<?= $id_catatan; ?>">
-
-                                                    <label>Jenis Tindakan</label>
-
-                                                    <select name="jenis_tindakan"
-                                                            class="form-control"
-                                                            required>
-
-                                                        <option value="">
-                                                            -- Pilih Tindakan --
-                                                        </option>
-
-                                                        <?php foreach ($daftar_tindakan as $index => $tindakan): ?>
-
-                                                            <?php if ($index >= $batas): ?>
-
-                                                                <option value="<?= htmlspecialchars($tindakan); ?>">
-                                                                    <?= htmlspecialchars($tindakan); ?>
-                                                                </option>
-
-                                                            <?php endif; ?>
-
-                                                        <?php endforeach; ?>
-
-                                                    </select>
-
-                                                    <label>Tanggal Tindakan</label>
-
-                                                    <input type="date"
-                                                           name="tanggal_tindakan"
-                                                           class="form-control"
-                                                           value="<?= date('Y-m-d'); ?>"
-                                                           required>
-
-                                                    <label>Keterangan</label>
-
-                                                    <textarea name="keterangan_tindakan"
-                                                              class="form-control"
-                                                              rows="2"
-                                                              placeholder="Keterangan pembinaan..."
-                                                              required></textarea>
-
-                                                    <button type="submit"
-                                                            class="btn btn-success btn-sm btn-block"
-                                                            onclick="return confirm('Yakin ingin menyimpan tindakan ini?')">
-
-                                                        <i class="fas fa-save"></i>
-                                                        Simpan
-
-                                                    </button>
-
-                                                </form>
-
-                                            </details>
-
-                                        <?php endif; ?>
-
-                                    <?php else: ?>
+                                    <?php if ($total_poin > 0): ?>
 
                                         <details>
 
-                                            <summary class="btn btn-light btn-tindakan">
-                                                <i class="fas fa-eye"></i>
-                                                Lihat Detail
+                                            <summary class="btn btn-primary btn-tindakan">
+                                                <i class="fas fa-edit"></i>
+                                                Proses
                                             </summary>
 
-                                            <div class="form-detail">
+                                            <form action="proses_tindakan.php"
+                                                  method="POST"
+                                                  class="form-detail">
 
-                                                <strong>
-                                                    <?= htmlspecialchars($row['tindakan'] ?? '-'); ?>
-                                                </strong>
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="<?= $id_catatan; ?>">
 
-                                                <hr>
+                                                <div class="mb-2">
+                                                    <label>Jenis Tindakan</label>
 
-                                                <small>
-                                                    <strong>Tanggal:</strong><br>
-                                                    <?= htmlspecialchars($row['tanggal_tindakan'] ?? '-'); ?>
-                                                </small>
+                                                    <input type="text"
+                                                           class="form-control"
+                                                           value="<?= htmlspecialchars($tindakan_otomatis); ?>"
+                                                           readonly>
+                                                </div>
 
-                                                <br><br>
+                                                <label>Tanggal Tindakan</label>
 
-                                                <small>
-                                                    <strong>Keterangan:</strong><br>
-                                                    <?= nl2br(htmlspecialchars($row['keterangan_tindakan'] ?? '-')); ?>
-                                                </small>
+                                                <input type="date"
+                                                       name="tanggal_tindakan"
+                                                       class="form-control"
+                                                       value="<?= date('Y-m-d'); ?>"
+                                                       required>
 
-                                            </div>
+                                                <label>Keterangan</label>
+
+                                                <textarea name="keterangan_tindakan"
+                                                          class="form-control"
+                                                          rows="3"
+                                                          placeholder="Masukkan keterangan tindakan..."
+                                                          required></textarea>
+
+                                                <button type="submit"
+                                                        class="btn btn-success btn-sm btn-block"
+                                                        onclick="return confirm('Yakin ingin menyelesaikan tindakan ini?')">
+
+                                                    <i class="fas fa-check-circle"></i>
+                                                    Selesaikan Tindakan
+
+                                                </button>
+
+                                            </form>
 
                                         </details>
+
+                                    <?php else: ?>
+
+                                        <span class="text-muted">
+                                            Poin belum tersedia
+                                        </span>
 
                                     <?php endif; ?>
 
@@ -479,10 +422,10 @@ if (!$query) {
                     <?php else: ?>
 
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="8" class="text-center text-muted py-4">
                                 <i class="fas fa-folder-open"></i>
                                 <br>
-                                Belum ada catatan pelanggaran siswa.
+                                Tidak ada tindakan yang perlu diproses.
                             </td>
                         </tr>
 

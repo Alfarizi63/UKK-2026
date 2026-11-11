@@ -29,24 +29,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 // Ambil input
 $id = (int)($_POST['id'] ?? 0);
-$jenis_tindakan = trim($_POST['jenis_tindakan'] ?? '');
 $tanggal_tindakan = trim($_POST['tanggal_tindakan'] ?? '');
 $keterangan_tindakan = trim($_POST['keterangan_tindakan'] ?? '');
 
 if ($id <= 0) {
     kembaliDenganError('ID catatan pelanggaran tidak valid.');
-}
-
-$daftar_tindakan = [
-    'Teguran Lisan',
-    'Teguran Tertulis',
-    'Pembinaan BK',
-    'Pemanggilan Orang Tua',
-    'Rekomendasi Tindakan Lanjutan'
-];
-
-if (!in_array($jenis_tindakan, $daftar_tindakan, true)) {
-    kembaliDenganError('Jenis tindakan tidak valid.');
 }
 
 if ($keterangan_tindakan === '') {
@@ -74,7 +61,7 @@ $stmt = mysqli_prepare(
 );
 
 if (!$stmt) {
-    kembaliDenganError('Gagal menyiapkan pemeriksaan data.');
+    kembaliDenganError('Gagal memeriksa data pelanggaran.');
 }
 
 mysqli_stmt_bind_param($stmt, 'i', $id);
@@ -89,7 +76,9 @@ if (!$catatan) {
     kembaliDenganError('Catatan pelanggaran tidak ditemukan.');
 }
 
-if (strtolower(trim($catatan['status'] ?? '')) === 'sudah ditindaklanjuti') {
+$status = strtolower(trim($catatan['status'] ?? ''));
+
+if ($status === 'sudah ditindaklanjuti') {
     kembaliDenganError('Catatan ini sudah ditindaklanjuti.');
 }
 
@@ -106,7 +95,7 @@ $stmt = mysqli_prepare(
 );
 
 if (!$stmt) {
-    kembaliDenganError('Gagal menghitung akumulasi poin.');
+    kembaliDenganError('Gagal menghitung total poin.');
 }
 
 mysqli_stmt_bind_param(
@@ -125,35 +114,33 @@ mysqli_stmt_close($stmt);
 
 $total_poin = (int)($data_poin['total_poin'] ?? 0);
 
-// Tentukan batas minimal tindakan
-if ($total_poin <= 20) {
-    $batas = 0;
+// Tentukan tindakan otomatis
+if ($total_poin <= 0) {
+
+    kembaliDenganError('Total poin siswa belum tersedia.');
+
+} elseif ($total_poin <= 20) {
+
+    $jenis_tindakan = 'Teguran Lisan';
+
 } elseif ($total_poin <= 40) {
-    $batas = 1;
+
+    $jenis_tindakan = 'Teguran Tertulis';
+
 } elseif ($total_poin <= 60) {
-    $batas = 2;
+
+    $jenis_tindakan = 'Pembinaan BK';
+
 } elseif ($total_poin <= 80) {
-    $batas = 3;
+
+    $jenis_tindakan = 'Pemanggilan Orang Tua';
+
 } else {
-    $batas = 4;
+
+    $jenis_tindakan = 'Rekomendasi Tindakan Lanjutan';
 }
 
-$index_tindakan = array_search(
-    $jenis_tindakan,
-    $daftar_tindakan,
-    true
-);
-
-// Validasi tindakan sesuai poin
-if ($total_poin <= 0 || $index_tindakan === false || $index_tindakan < $batas) {
-    kembaliDenganError(
-        'Tindakan ditolak! Total poin siswa adalah ' .
-        $total_poin .
-        '. Pilih tindakan sesuai batas poin.'
-    );
-}
-
-// Simpan tindakan
+// Simpan tindakan dan selesaikan status
 $stmt = mysqli_prepare(
     $koneksi,
     "UPDATE t_pelanggaran_siswa
@@ -162,7 +149,7 @@ $stmt = mysqli_prepare(
          keterangan_tindakan = ?,
          status = 'Sudah ditindaklanjuti'
      WHERE id = ?
-       AND status = 'Belum ditindaklanjuti'"
+       AND LOWER(TRIM(COALESCE(status, ''))) != 'sudah ditindaklanjuti'"
 );
 
 if (!$stmt) {
@@ -178,14 +165,21 @@ mysqli_stmt_bind_param(
     $id
 );
 
-if (mysqli_stmt_execute($stmt) && mysqli_stmt_affected_rows($stmt) > 0) {
-    mysqli_stmt_close($stmt);
-    kembaliDenganSukses('Tindakan pelanggaran berhasil disimpan.');
-}
+$berhasil = mysqli_stmt_execute($stmt);
+$jumlah_data = mysqli_stmt_affected_rows($stmt);
 
 mysqli_stmt_close($stmt);
 
+if ($berhasil && $jumlah_data > 0) {
+
+    kembaliDenganSukses(
+        'Tindakan ' . $jenis_tindakan .
+        ' berhasil diselesaikan dan masuk ke riwayat.'
+    );
+
+}
+
 kembaliDenganError(
-    'Tindakan gagal disimpan. Periksa kembali status catatan pelanggaran.'
+    'Tindakan gagal disimpan. Silakan periksa kembali data.'
 );
 ?>
