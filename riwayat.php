@@ -2,245 +2,23 @@
 <?php
 include 'includes/cek_session.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-include 'config/koneksi.php';
-
 $role = $_SESSION['role'] ?? '';
-$nama_login = $_SESSION['name'] ?? '';
-$email = trim($_SESSION['email'] ?? '');
 
 if (!in_array($role, ['admin', 'guru', 'wali_kelas'], true)) {
     header('Location: dashboard.php');
     exit;
 }
 
-// ========================================
-// IDENTITAS GURU
-// ========================================
+include 'config/koneksi.php';
 
-$guru_id = 0;
-$kelas_wali_id = 0;
-$tahun_ajaran_aktif_id = 0;
-$akses_wali_kelas = false;
+$sql = "SELECT  siswa_id, nama_siswa, nama_kelas, keterangan, tindakan,
+        FROM t_pelanggaran_siswa
+        ORDER BY id ASC";
 
-if ($role === 'guru' || $role === 'wali_kelas') {
-
-    $stmtGuru = mysqli_prepare(
-        $koneksi,
-        "SELECT id
-         FROM t_guru
-         WHERE email = ?
-         LIMIT 1"
-    );
-
-    if (!$stmtGuru) {
-        die('Gagal memeriksa akun guru: ' . mysqli_error($koneksi));
-    }
-
-    mysqli_stmt_bind_param($stmtGuru, 's', $email);
-    mysqli_stmt_execute($stmtGuru);
-
-    $resultGuru = mysqli_stmt_get_result($stmtGuru);
-    $dataGuru = mysqli_fetch_assoc($resultGuru);
-
-    mysqli_stmt_close($stmtGuru);
-
-    // Jika email tidak cocok, coba berdasarkan nama
-    if (!$dataGuru && $nama_login !== '') {
-
-        $stmtGuru = mysqli_prepare(
-            $koneksi,
-            "SELECT id
-             FROM t_guru
-             WHERE nama = ?
-             LIMIT 1"
-        );
-
-        if (!$stmtGuru) {
-            die('Gagal memeriksa data guru: ' . mysqli_error($koneksi));
-        }
-
-        mysqli_stmt_bind_param($stmtGuru, 's', $nama_login);
-        mysqli_stmt_execute($stmtGuru);
-
-        $resultGuru = mysqli_stmt_get_result($stmtGuru);
-        $dataGuru = mysqli_fetch_assoc($resultGuru);
-
-        mysqli_stmt_close($stmtGuru);
-    }
-
-    if (!$dataGuru) {
-        die('Data guru tidak ditemukan. Pastikan email atau nama akun sesuai dengan data guru.');
-    }
-
-    $guru_id = (int)$dataGuru['id'];
-
-    // ========================================
-    // AMBIL TAHUN AJARAN AKTIF
-    // ========================================
-
-    $queryTahun = mysqli_query(
-        $koneksi,
-        "SELECT id
-         FROM t_tahun_ajaran
-         WHERE status_aktif = 1
-         LIMIT 1"
-    );
-
-    if (!$queryTahun) {
-        die('Gagal mengambil tahun ajaran: ' . mysqli_error($koneksi));
-    }
-
-    $dataTahun = mysqli_fetch_assoc($queryTahun);
-
-    if ($dataTahun) {
-        $tahun_ajaran_aktif_id = (int)$dataTahun['id'];
-    }
-
-    // ========================================
-    // CEK PENUGASAN WALI KELAS
-    // ========================================
-
-    if ($tahun_ajaran_aktif_id > 0) {
-
-        $stmtWali = mysqli_prepare(
-            $koneksi,
-            "SELECT
-                wk.kelas_id
-             FROM t_wali_kelas wk
-             INNER JOIN t_tahun_ajaran ta
-                ON ta.id = wk.tahun_ajaran_id
-             WHERE wk.guru_id = ?
-               AND wk.tahun_ajaran_id = ?
-               AND wk.status_aktif = 1
-               AND ta.status_aktif = 1
-             LIMIT 1"
-        );
-
-        if (!$stmtWali) {
-            die('Gagal memeriksa penugasan wali kelas: ' . mysqli_error($koneksi));
-        }
-
-        mysqli_stmt_bind_param(
-            $stmtWali,
-            'ii',
-            $guru_id,
-            $tahun_ajaran_aktif_id
-        );
-
-        mysqli_stmt_execute($stmtWali);
-
-        $resultWali = mysqli_stmt_get_result($stmtWali);
-        $dataWali = mysqli_fetch_assoc($resultWali);
-
-        mysqli_stmt_close($stmtWali);
-
-        if ($dataWali) {
-            $akses_wali_kelas = true;
-            $kelas_wali_id = (int)$dataWali['kelas_id'];
-        }
-    }
-
-    // Akun wali kelas wajib memiliki penugasan aktif
-    if ($role === 'wali_kelas' && !$akses_wali_kelas) {
-        header('Location: dashboard.php');
-        exit;
-    }
-}
-
-// ========================================
-// QUERY RIWAYAT PELANGGARAN
-// HANYA YANG SUDAH DITINDAKLANJUTI
-// ========================================
-
-$sql = "
-    SELECT
-        ps.id,
-        ps.siswa_id,
-        ps.nama_siswa,
-        ps.nama_kelas,
-        ps.nama_pelanggaran,
-        ps.poin,
-        ps.tanggal,
-        ps.nama_guru,
-        ps.status,
-        ps.tindakan,
-        ps.tahun_ajaran_id,
-        ta.nama AS tahun_ajaran
-    FROM t_pelanggaran_siswa ps
-    LEFT JOIN t_tahun_ajaran ta
-        ON ta.id = ps.tahun_ajaran_id
-    WHERE LOWER(TRIM(COALESCE(ps.status, ''))) = 'sudah ditindaklanjuti'
-";
-
-// ========================================
-// FILTER ADMIN / WALI KELAS / GURU
-// ========================================
-
-if ($role === 'admin') {
-
-    // Admin melihat seluruh riwayat.
-
-} elseif ($akses_wali_kelas) {
-
-    // Wali kelas melihat seluruh riwayat
-    // siswa di kelas tanggung jawabnya.
-
-    $sql .= "
-        AND ps.kelas_id = ?
-        AND ps.tahun_ajaran_id = ?
-    ";
-
-} elseif ($role === 'guru') {
-
-    // Guru biasa hanya melihat catatan miliknya sendiri.
-
-    $sql .= "
-        AND ps.guru_id = ?
-    ";
-}
-
-$sql .= "
-    ORDER BY ps.tanggal DESC, ps.id DESC
-";
-
-$stmt = mysqli_prepare($koneksi, $sql);
-
-if (!$stmt) {
-    die('Gagal menyiapkan query: ' . mysqli_error($koneksi));
-}
-
-// ========================================
-// BIND PARAMETER
-// ========================================
-
-if ($akses_wali_kelas) {
-
-    mysqli_stmt_bind_param(
-        $stmt,
-        'ii',
-        $kelas_wali_id,
-        $tahun_ajaran_aktif_id
-    );
-
-} elseif ($role === 'guru') {
-
-    mysqli_stmt_bind_param(
-        $stmt,
-        'i',
-        $guru_id
-    );
-}
-
-mysqli_stmt_execute($stmt);
-
-$query = mysqli_stmt_get_result($stmt);
+$query = mysqli_query($koneksi, $sql);
 
 if (!$query) {
-    die('Gagal mengambil riwayat: ' . mysqli_error($koneksi));
+    die("Gagal mengambil data: " . mysqli_error($koneksi));
 }
 ?>
 
@@ -249,13 +27,9 @@ if (!$query) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <title>Riwayat Pelanggaran</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
     <style>
         body {
@@ -279,7 +53,6 @@ if (!$query) {
         #tabelRiwayat {
             width: 100%;
             margin-bottom: 0;
-            font-size: 13px;
         }
 
         #tabelRiwayat th {
@@ -291,7 +64,7 @@ if (!$query) {
 
         #tabelRiwayat th,
         #tabelRiwayat td {
-            padding: 9px 10px;
+            padding: 10px;
             vertical-align: middle;
         }
 
@@ -324,7 +97,11 @@ if (!$query) {
             cursor: pointer;
         }
 
-        .pagination-area button:hover,
+        .pagination-area button:hover {
+            background: #007bff;
+            color: white;
+        }
+
         .pagination-area button.active {
             background: #007bff;
             color: white;
@@ -391,142 +168,133 @@ if (!$query) {
 
 <main class="main-content">
 
-    <div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
 
-        <h2>
-            <i class="fas fa-history"></i>
-            Riwayat Pelanggaran
-        </h2>
+        <div>
+            <h2>Riwayat Pelanggaran</h2>
 
-        <p class="text-muted">
-            Daftar catatan pelanggaran siswa yang sudah selesai ditindaklanjuti.
-        </p>
-
-        <?php if ($role !== 'admin'): ?>
-            <div class="alert alert-info py-2">
-                <i class="fas fa-user-shield"></i>
-                Login sebagai:
-                <strong>
-                    <?= htmlspecialchars($_SESSION['name'] ?? $role); ?>
-                </strong>
-
-                <?php if ($akses_wali_kelas): ?>
-                    (Wali Kelas)
-                <?php else: ?>
-                    (Guru)
-                <?php endif; ?>
-            </div>
-        <?php endif; ?>
+            <p class="text-muted">
+                Daftar jenis pelanggaran yang tersimpan dalam sistem.
+            </p>
+        </div>
 
     </div>
 
     <div class="card shadow-sm">
         <div class="card-body">
 
+            <?php if ($role === 'guru' || $role === 'wali_kelas') { ?>
+                <div class="mb-3">
+                    <h5>
+                        Selamat datang,
+                        <?= htmlspecialchars($_SESSION['name'] ?? '') ?>
+                    </h5>
+                    <p>Anda login sebagai: <?= htmlspecialchars($role) ?></p>
+                </div>
+            <?php } ?>
+
             <!-- KONTROL TABEL -->
             <div class="kontrol-tabel">
 
                 <div>
                     <label for="jumlahBaris">
-                        Tampilkan:
+                        Tampilkan data:
                     </label>
 
-                    <select id="jumlahBaris" class="form-control d-inline-block"
-                            style="width: auto;">
-
+                    <select id="jumlahBaris">
                         <option value="5">5</option>
                         <option value="10" selected>10</option>
                         <option value="25">25</option>
                         <option value="50">50</option>
                         <option value="all">Semua</option>
-
                     </select>
                 </div>
 
                 <div>
+                    <label for="cariTabel">
+                        Cari data:
+                    </label>
+
                     <input
                         type="search"
                         id="cariTabel"
                         class="form-control"
-                        placeholder="Cari nama, kelas, pelanggaran..."
+                        placeholder="Cari riwayat pelanggaran..."
                     >
                 </div>
 
             </div>
 
-            <!-- TABEL RIWAYAT -->
+            <!-- TABEL -->
             <div class="tabel-wrapper">
 
                 <table id="tabelRiwayat"
-                       class="table table-bordered table-striped table-hover">
+                       class="table table-bordered table-striped">
 
                     <thead>
                         <tr>
                             <th data-sort="number">ID ↕</th>
-                            <th data-sort="text">Nama Siswa ↕</th>
-                            <th data-sort="text">Kelas ↕</th>
-                            <th data-sort="text">Pelanggaran ↕</th>
+                            <th data-sort="text">Kode ↕</th>
+                            <th data-sort="text">Nama Pelanggaran ↕</th>
                             <th data-sort="number">Poin ↕</th>
-                            <th data-sort="text">Tanggal ↕</th>
+                            <th data-sort="text">Deskripsi ↕</th>
                             <th data-sort="text">Status ↕</th>
                         </tr>
                     </thead>
 
                     <tbody>
 
-                    <?php if (mysqli_num_rows($query) > 0): ?>
+                    <?php if (mysqli_num_rows($query) > 0) { ?>
 
-                        <?php while ($row = mysqli_fetch_assoc($query)): ?>
+                        <?php while ($row = mysqli_fetch_assoc($query)) { ?>
 
-                            <tr>
+                        <tr>
+                            <td><?= (int) $row['id']; ?></td>
 
-                                <td>
-                                    <?= (int)$row['id']; ?>
-                                </td>
+                            <td>
+                                <?= htmlspecialchars($row['kode'] ?? '-'); ?>
+                            </td>
 
-                                <td>
-                                    <strong>
-                                        <?= htmlspecialchars($row['nama_siswa'] ?? '-'); ?>
-                                    </strong>
-                                </td>
+                            <td>
+                                <?= htmlspecialchars($row['nama'] ?? '-'); ?>
+                            </td>
 
-                                <td>
-                                    <?= htmlspecialchars($row['nama_kelas'] ?? '-'); ?>
-                                </td>
+                            <td>
+                                <?= (int) $row['poin']; ?>
+                            </td>
 
-                                <td>
-                                    <?= htmlspecialchars($row['nama_pelanggaran'] ?? '-'); ?>
-                                </td>
+                            <td>
+                                <?= htmlspecialchars($row['deskripsi'] ?? '-'); ?>
+                            </td>
 
-                                <td>
-                                    <strong class="text-primary">
-                                        <?= (int)$row['poin']; ?> poin
-                                    </strong>
-                                </td>
+                            <td>
+                                <?php if ((int) $row['status_aktif'] === 1) { ?>
 
-                                <td>
-                                    <?= htmlspecialchars($row['tanggal'] ?? '-'); ?>
-                                </td>
-
-                                <td>
                                     <span class="badge bg-success">
-                                        Sudah Ditindaklanjuti
+                                        Aktif
                                     </span>
-                                </td>
 
-                            </tr>
+                                <?php } else { ?>
 
-                        <?php endwhile; ?>
+                                    <span class="badge bg-secondary">
+                                        Tidak Aktif
+                                    </span>
 
-                    <?php else: ?>
-
-                        <tr class="baris-kosong">
-                            <td colspan="7" class="text-center">
-                                Belum ada riwayat pelanggaran yang selesai ditindaklanjuti.
+                                <?php } ?>
                             </td>
                         </tr>
 
-                    <?php endif; ?>
+                        <?php } ?>
+
+                    <?php } else { ?>
+
+                        <tr class="baris-kosong">
+                            <td colspan="6" class="text-center">
+                                Belum ada data pelanggaran.
+                            </td>
+                        </tr>
+
+                    <?php } ?>
 
                     </tbody>
 
@@ -534,15 +302,14 @@ if (!$query) {
 
             </div>
 
-            <p id="infoTabel" class="mt-3 text-muted"></p>
+            <p id="infoTabel" class="mt-3"></p>
 
             <div id="paginationTabel" class="pagination-area"></div>
 
-            <!-- TOMBOL -->
+            <!-- TOMBOL AKSI -->
             <div class="tombol-aksi mt-3">
 
                 <a href="dashboard.php" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i>
                     Kembali
                 </a>
 
@@ -550,10 +317,7 @@ if (!$query) {
                     type="button"
                     onclick="window.print()"
                     class="btn btn-primary">
-
-                    <i class="fas fa-print"></i>
                     Cetak
-
                 </button>
 
             </div>
@@ -568,7 +332,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const tabel = document.getElementById('tabelRiwayat');
 
-    if (!tabel) return;
+    if (!tabel) {
+        return;
+    }
 
     const tbody = tabel.querySelector('tbody');
     const inputCari = document.getElementById('cariTabel');
@@ -636,7 +402,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 barisKosong.className = 'baris-kosong';
 
                 const sel = document.createElement('td');
-                sel.colSpan = 7;
+
+                sel.colSpan = 6;
+                sel.className = 'text-center';
 
                 barisKosong.appendChild(sel);
                 tbody.appendChild(barisKosong);
@@ -646,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             barisKosong.querySelector('td').textContent =
                 semuaBaris.length === 0
-                    ? 'Belum ada riwayat pelanggaran.'
+                    ? 'Belum ada data pelanggaran.'
                     : 'Data yang dicari tidak ditemukan.';
 
         } else if (barisKosong) {
@@ -715,6 +483,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ) {
 
                 const titik = document.createElement('span');
+
                 titik.textContent = '...';
                 titik.style.padding = '8px';
 
@@ -730,7 +499,6 @@ document.addEventListener('DOMContentLoaded', function () {
         );
     }
 
-    // PENGURUTAN KOLOM
     headers.forEach(function (header, indeks) {
 
         header.addEventListener('click', function () {
@@ -748,11 +516,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 let teksB = b.cells[indeks].textContent.trim();
 
                 if (header.dataset.sort === 'number') {
-
-                    const angkaA = parseInt(teksA.replace(/[^\d-]/g, ''), 10) || 0;
-                    const angkaB = parseInt(teksB.replace(/[^\d-]/g, ''), 10) || 0;
-
-                    return (angkaA - angkaB) * arahUrut;
+                    return (Number(teksA) - Number(teksB)) * arahUrut;
                 }
 
                 return teksA.localeCompare(teksB, 'id', {
@@ -768,6 +532,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             halamanAktif = 1;
             renderTabel();
+
         });
 
     });
@@ -800,9 +565,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const tr = document.createElement('tr');
             const td = document.createElement('td');
 
-            td.colSpan = 7;
+            td.colSpan = 6;
             td.className = 'text-center';
-            td.textContent = 'Belum ada riwayat pelanggaran.';
+            td.textContent = 'Belum ada data pelanggaran.';
 
             tr.appendChild(td);
             tbody.appendChild(tr);
@@ -817,7 +582,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.addEventListener('afterprint', function () {
 
-        if (!kondisiCetak) return;
+        if (!kondisiCetak) {
+            return;
+        }
 
         inputCari.value = kondisiCetak.pencarian;
         jumlahBaris.value = kondisiCetak.jumlah;
@@ -835,7 +602,3 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </body>
 </html>
-
-<?php
-mysqli_stmt_close($stmt);
-?>

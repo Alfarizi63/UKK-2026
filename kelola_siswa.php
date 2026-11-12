@@ -201,21 +201,7 @@ body {
                     <option value="0">Tidak Aktif</option>
                 </select>
             </div>
-
-            <div class="form-group col-md-6 mb-3">
-                <label>Kelas</label>
-                <select name="kelas_id" class="form-control" required>
-                    <option value="">-- Pilih Kelas --</option>
-                    <?php while ($kelas = mysqli_fetch_assoc($queryKelas)): ?>
-                        <option value="<?= (int)$kelas['id'] ?>">
-                            <?= htmlspecialchars($kelas['nama']) ?>
-                            (<?= htmlspecialchars($kelas['tingkat']) ?> -
-                            <?= htmlspecialchars($kelas['jurusan']) ?>)
-                        </option>
-                    <?php endwhile; ?>
-                </select>
-            </div>
-
+            
             <div class="form-group col-md-6 mb-3">
                 <label>Tahun Ajaran</label>
                 <select name="tahun_ajaran_id" class="form-control" required>
