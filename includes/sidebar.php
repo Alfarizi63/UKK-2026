@@ -132,7 +132,6 @@ $menu_admin = [
     ['Wali Kelas', 'kelola_wali_kelas.php', 'bi-person-workspace'],
     ['Penempatan Siswa', 'kelola_penempatan_siswa.php', 'bi-person-lines-fill'],
     ['Jenis Pelanggaran', 'kelola_jenis_pelanggaran.php', 'bi-clipboard-check'],
-    ['Export', 'export.php', 'bi-download'],
     ['About Me', 'tentang_saya.php', 'bi-info-circle']
 
 ];
