@@ -1,7 +1,11 @@
 
 <?php
 include 'includes/cek_session.php';
+include 'config/koneksi.php';
 
+// ========================================
+// HAK AKSES
+// ========================================
 $role = $_SESSION['role'] ?? '';
 
 if (!in_array($role, ['admin', 'guru', 'wali_kelas'], true)) {
@@ -9,292 +13,590 @@ if (!in_array($role, ['admin', 'guru', 'wali_kelas'], true)) {
     exit;
 }
 
-include 'config/koneksi.php';
+$nama_login = $_SESSION['nama_guru']
+    ?? $_SESSION['name']
+    ?? 'Pengguna';
 
-$sql = "SELECT  siswa_id, nama_siswa, nama_kelas, keterangan, tindakan,
+$guru_id = (int) ($_SESSION['guru_id'] ?? 0);
+
+$error = '';
+$data_riwayat = [];
+
+// ========================================
+// AMBIL RIWAYAT
+// ========================================
+if ($role === 'admin') {
+
+    // ADMIN MELIHAT SEMUA LAPORAN
+    $sql = "
+        SELECT *
         FROM t_pelanggaran_siswa
-        ORDER BY id ASC";
+        ORDER BY id DESC
+    ";
 
-$query = mysqli_query($koneksi, $sql);
+    $query = mysqli_query($koneksi, $sql);
 
-if (!$query) {
-    die("Gagal mengambil data: " . mysqli_error($koneksi));
+} else {
+
+    // GURU HANYA MELIHAT LAPORAN MILIKNYA
+    if ($guru_id < 1) {
+        $error = 'Identitas guru tidak ditemukan. Silakan logout dan login kembali.';
+        $query = false;
+    } else {
+
+        $sql = "
+            SELECT *
+            FROM t_pelanggaran_siswa
+            WHERE guru_id = ?
+            ORDER BY id DESC
+        ";
+
+        $stmt = mysqli_prepare($koneksi, $sql);
+
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "i", $guru_id);
+            mysqli_stmt_execute($stmt);
+
+            $query = mysqli_stmt_get_result($stmt);
+        } else {
+            $query = false;
+        }
+    }
+}
+
+// ========================================
+// MASUKKAN HASIL KE ARRAY
+// ========================================
+if ($query) {
+
+    while ($row = mysqli_fetch_assoc($query)) {
+        $data_riwayat[] = $row;
+    }
+
+} elseif ($error === '') {
+
+    $error = 'Gagal mengambil data riwayat: ' . mysqli_error($koneksi);
+}
+
+$total_riwayat = count($data_riwayat);
+
+// ========================================
+// FUNGSI FORMAT TANGGAL
+// ========================================
+function formatTanggal($tanggal)
+{
+    if (!$tanggal || $tanggal === '0000-00-00') {
+        return '-';
+    }
+
+    $waktu = strtotime($tanggal);
+
+    if (!$waktu) {
+        return $tanggal;
+    }
+
+    return date('d-m-Y', $waktu);
+}
+
+// ========================================
+// FUNGSI HTML AMAN
+// ========================================
+function e($nilai)
+{
+    return htmlspecialchars((string) ($nilai ?? '-'), ENT_QUOTES, 'UTF-8');
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Riwayat Pelanggaran</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap 4 -->
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
     <style>
         body {
-            background: #f8f9fa;
-            margin: 0;
+            background: #f5f7fb;
             font-family: Arial, sans-serif;
+            color: #334155;
         }
 
-        .main-content {
-            margin-left: 250px;
-            padding: 25px;
-            min-width: 0;
+        .konten {
+            margin-left: 273px;
+            padding: 28px;
         }
 
-        .tabel-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            background: white;
+        .judul {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
         }
 
-        #tabelRiwayat {
-            width: 100%;
+        .deskripsi {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .kartu {
+            background: #fff;
+            border: 1px solid #e8edf4;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, .035);
+        }
+
+        .statistik {
+            padding: 20px;
+            height: 100%;
+        }
+
+        .ikon {
+            width: 43px;
+            height: 43px;
+            border-radius: 10px;
+            background: #eaf1ff;
+            color: #2563eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            margin-bottom: 13px;
+        }
+
+        .angka {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .label {
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .bagian-tabel {
+            padding: 20px;
+        }
+
+        .judul-tabel {
+            font-size: 17px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .form-control {
+            border-radius: 7px;
+            height: 40px;
+            font-size: 13px;
+        }
+
+        .table-responsive {
+            border: 1px solid #edf0f5;
+            border-radius: 8px;
+        }
+
+        .table {
+            min-width: 1000px;
             margin-bottom: 0;
         }
 
-        #tabelRiwayat th {
-            background: #212529;
-            color: white;
+        .table thead th {
+            background: #f8fafc;
+            color: #475569;
+            font-size: 11px;
+            text-transform: uppercase;
+            padding: 14px 12px;
+            border-top: none;
             white-space: nowrap;
-            cursor: pointer;
         }
 
-        #tabelRiwayat th,
-        #tabelRiwayat td {
-            padding: 10px;
+        .table tbody td {
+            font-size: 13px;
+            padding: 14px 12px;
             vertical-align: middle;
+            color: #475569;
         }
 
-        .kontrol-tabel {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin: 15px 0;
+        .table tbody tr:hover {
+            background: #f8faff;
         }
 
-        .kontrol-tabel input {
-            max-width: 350px;
+        .nama-siswa {
+            font-weight: 700;
+            color: #1e293b;
         }
 
-        .pagination-area {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-            margin: 15px 0;
+        .badge-poin {
+            display: inline-block;
+            background: #fff4df;
+            color: #a16207;
+            padding: 6px 9px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
         }
 
-        .pagination-area button {
-            border: 1px solid #007bff;
-            background: white;
-            color: #007bff;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
+        .badge-pelapor {
+            display: inline-block;
+            background: #eaf1ff;
+            color: #1d4ed8;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
         }
 
-        .pagination-area button:hover {
-            background: #007bff;
-            color: white;
+        .badge-status {
+            display: inline-block;
+            background: #e8f7ee;
+            color: #16803d;
+            padding: 6px 9px;
+            border-radius: 6px;
+            font-size: 11px;
         }
 
-        .pagination-area button.active {
-            background: #007bff;
-            color: white;
+        .kosong {
+            text-align: center;
+            padding: 45px 15px !important;
         }
 
-        .pagination-area button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .kosong i {
+            font-size: 38px;
+            color: #94a3b8;
+            margin-bottom: 12px;
         }
 
-        @media (max-width: 767px) {
-            .main-content {
+        .pagination {
+            margin-bottom: 0;
+        }
+
+        .pagination .page-link {
+            border-radius: 6px;
+            margin: 0 2px;
+            color: #2563eb;
+            font-size: 12px;
+        }
+
+        .pagination .active .page-link {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: #fff;
+        }
+
+        @media (max-width: 768px) {
+            .konten {
                 margin-left: 0;
                 padding: 15px;
-            }
-
-            .kontrol-tabel {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .kontrol-tabel input {
-                max-width: 100%;
             }
         }
 
         @media print {
             .sidebar,
-            .kontrol-tabel,
-            .pagination-area,
-            .tombol-aksi,
-            #infoTabel {
+            .toolbar,
+            .pagination,
+            .tombol-aksi {
                 display: none !important;
             }
 
-            .main-content {
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
+            .konten {
+                margin: 0;
+                padding: 0;
             }
 
-            body {
-                background: white;
-            }
-
-            .tabel-wrapper {
-                overflow: visible;
-            }
-
-            #tabelRiwayat {
-                font-size: 11px;
-            }
-
-            #tabelRiwayat tr {
-                display: table-row !important;
+            .table {
+                min-width: 100%;
             }
         }
     </style>
+
 </head>
 
 <body>
 
 <?php include 'includes/sidebar.php'; ?>
 
-<main class="main-content">
+<div class="konten">
 
-    <div class="d-flex justify-content-between align-items-center flex-wrap">
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
 
         <div>
-            <h2>Riwayat Pelanggaran</h2>
+            <h4 class="judul mb-1">
+                <i class="fas fa-history mr-2"></i>
+                Riwayat Pelanggaran
+            </h4>
 
-            <p class="text-muted">
-                Daftar jenis pelanggaran yang tersimpan dalam sistem.
+            <p class="deskripsi mb-0">
+                Daftar laporan pelanggaran siswa.
             </p>
+        </div>
+
+        <button onclick="window.print()"
+            class="btn btn-primary btn-sm tombol-aksi">
+
+            <i class="fas fa-print mr-1"></i>
+            Cetak Riwayat
+
+        </button>
+
+    </div>
+
+    <!-- IDENTITAS PENGGUNA -->
+    <?php if ($role !== 'admin'): ?>
+
+        <div class="alert alert-light border mb-4">
+
+            <i class="fas fa-user-shield text-primary mr-2"></i>
+
+            <strong><?= e($nama_login); ?></strong>
+
+            <span class="text-muted ml-2">
+                · Riwayat laporan milik akun Anda.
+            </span>
+
+        </div>
+
+    <?php endif; ?>
+
+    <!-- ERROR -->
+    <?php if ($error !== ''): ?>
+
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle mr-1"></i>
+            <?= e($error); ?>
+        </div>
+
+    <?php endif; ?>
+
+    <!-- STATISTIK -->
+    <div class="row mb-4">
+
+        <div class="col-md-4 mb-3">
+
+            <div class="kartu statistik">
+
+                <div class="ikon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+
+                <div class="angka">
+                    <?= $total_riwayat; ?>
+                </div>
+
+                <div class="label">
+                    Total laporan pelanggaran
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-4 mb-3">
+
+            <div class="kartu statistik">
+
+                <div class="ikon">
+                    <i class="fas fa-user-check"></i>
+                </div>
+
+                <div class="angka" style="font-size:20px;">
+                    <?= $role === 'admin' ? 'Semua Guru' : 'Laporan Saya'; ?>
+                </div>
+
+                <div class="label">
+                    Cakupan riwayat
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-4 mb-3">
+
+            <div class="kartu statistik">
+
+                <div class="ikon">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+
+                <div class="angka" style="font-size:20px;">
+                    <?= date('d-m-Y'); ?>
+                </div>
+
+                <div class="label">
+                    Tanggal hari ini
+                </div>
+
+            </div>
+
         </div>
 
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body">
+    <!-- TABEL RIWAYAT -->
+    <div class="kartu">
 
-            <?php if ($role === 'guru' || $role === 'wali_kelas') { ?>
-                <div class="mb-3">
-                    <h5>
-                        Selamat datang,
-                        <?= htmlspecialchars($_SESSION['name'] ?? '') ?>
-                    </h5>
-                    <p>Anda login sebagai: <?= htmlspecialchars($role) ?></p>
-                </div>
-            <?php } ?>
+        <div class="bagian-tabel">
 
-            <!-- KONTROL TABEL -->
-            <div class="kontrol-tabel">
+            <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
 
                 <div>
-                    <label for="jumlahBaris">
-                        Tampilkan data:
+                    <div class="judul-tabel">
+                        Daftar Riwayat
+                    </div>
+
+                    <small class="text-muted">
+                        Data laporan yang tersimpan.
+                    </small>
+                </div>
+
+                <span class="badge badge-primary p-2">
+                    <?= $total_riwayat; ?> Laporan
+                </span>
+
+            </div>
+
+            <!-- TOOLBAR -->
+            <div class="row toolbar mb-3">
+
+                <div class="col-md-6 mb-2">
+
+                    <label class="small text-muted">
+                        Tampilkan data
                     </label>
 
-                    <select id="jumlahBaris">
+                    <select id="jumlahData"
+                        class="form-control"
+                        style="max-width:120px;">
+
                         <option value="5">5</option>
                         <option value="10" selected>10</option>
                         <option value="25">25</option>
                         <option value="50">50</option>
                         <option value="all">Semua</option>
+
                     </select>
+
                 </div>
 
-                <div>
-                    <label for="cariTabel">
-                        Cari data:
+                <div class="col-md-6 mb-2">
+
+                    <label class="small text-muted">
+                        Cari riwayat
                     </label>
 
-                    <input
-                        type="search"
-                        id="cariTabel"
+                    <input type="text"
+                        id="cariData"
                         class="form-control"
-                        placeholder="Cari riwayat pelanggaran..."
-                    >
+                        placeholder="Cari nama siswa, kelas, pelanggaran...">
+
                 </div>
 
             </div>
 
             <!-- TABEL -->
-            <div class="tabel-wrapper">
+            <div class="table-responsive">
 
-                <table id="tabelRiwayat"
-                       class="table table-bordered table-striped">
+                <table class="table table-hover" id="tabelRiwayat">
 
                     <thead>
                         <tr>
-                            <th data-sort="number">ID ↕</th>
-                            <th data-sort="text">Kode ↕</th>
-                            <th data-sort="text">Nama Pelanggaran ↕</th>
-                            <th data-sort="number">Poin ↕</th>
-                            <th data-sort="text">Deskripsi ↕</th>
-                            <th data-sort="text">Status ↕</th>
+                            <th>No</th>
+                            <th>Tanggal</th>
+                            <th>Nama Siswa</th>
+                            <th>Kelas</th>
+                            <th>Pelanggaran</th>
+                            <th>Poin</th>
+                            <th>Keterangan</th>
+                            <th>Tindakan</th>
+                            <th>Pelapor</th>
                         </tr>
                     </thead>
 
                     <tbody>
 
-                    <?php if (mysqli_num_rows($query) > 0) { ?>
+                    <?php if ($total_riwayat > 0): ?>
 
-                        <?php while ($row = mysqli_fetch_assoc($query)) { ?>
+                        <?php $no = 1; ?>
+
+                        <?php foreach ($data_riwayat as $row): ?>
+
+                            <tr class="baris-data">
+
+                                <td><?= $no++; ?></td>
+
+                                <td>
+                                    <?= e(formatTanggal($row['tanggal'] ?? '')); ?>
+                                </td>
+
+                                <td>
+                                    <div class="nama-siswa">
+                                        <?= e($row['nama_siswa'] ?? '-'); ?>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <?= e($row['nama_kelas'] ?? '-'); ?>
+                                </td>
+
+                                <td>
+                                    <?= e($row['nama_pelanggaran'] ?? '-'); ?>
+                                </td>
+
+                                <td>
+                                    <span class="badge-poin">
+                                        <?= e($row['poin'] ?? 0); ?> Poin
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <?= e($row['keterangan'] ?? '-'); ?>
+                                </td>
+
+                                <td>
+                                    <?= e($row['tindakan'] ?? '-'); ?>
+                                </td>
+
+                                <td>
+                                    <span class="badge-pelapor">
+                                        <i class="fas fa-user mr-1"></i>
+                                        <?= e($row['nama_guru'] ?? '-'); ?>
+                                    </span>
+                                </td>
+
+                            </tr>
+
+                        <?php endforeach; ?>
+
+                    <?php else: ?>
 
                         <tr>
-                            <td><?= (int) $row['id']; ?></td>
+                            <td colspan="9" class="kosong">
 
-                            <td>
-                                <?= htmlspecialchars($row['kode'] ?? '-'); ?>
-                            </td>
+                                <i class="fas fa-folder-open d-block"></i>
 
-                            <td>
-                                <?= htmlspecialchars($row['nama'] ?? '-'); ?>
-                            </td>
+                                <h6 class="font-weight-bold">
+                                    Belum Ada Riwayat
+                                </h6>
 
-                            <td>
-                                <?= (int) $row['poin']; ?>
-                            </td>
+                                <p class="text-muted mb-0">
+                                    Belum ada laporan pelanggaran yang dapat ditampilkan.
+                                </p>
 
-                            <td>
-                                <?= htmlspecialchars($row['deskripsi'] ?? '-'); ?>
-                            </td>
-
-                            <td>
-                                <?php if ((int) $row['status_aktif'] === 1) { ?>
-
-                                    <span class="badge bg-success">
-                                        Aktif
-                                    </span>
-
-                                <?php } else { ?>
-
-                                    <span class="badge bg-secondary">
-                                        Tidak Aktif
-                                    </span>
-
-                                <?php } ?>
                             </td>
                         </tr>
 
-                        <?php } ?>
-
-                    <?php } else { ?>
-
-                        <tr class="baris-kosong">
-                            <td colspan="6" class="text-center">
-                                Belum ada data pelanggaran.
-                            </td>
-                        </tr>
-
-                    <?php } ?>
+                    <?php endif; ?>
 
                     </tbody>
 
@@ -302,300 +604,160 @@ if (!$query) {
 
             </div>
 
-            <p id="infoTabel" class="mt-3"></p>
+            <!-- FOOTER TABEL -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap mt-3">
 
-            <div id="paginationTabel" class="pagination-area"></div>
+                <small class="text-muted" id="infoData">
+                    Menampilkan data.
+                </small>
 
-            <!-- TOMBOL AKSI -->
-            <div class="tombol-aksi mt-3">
-
-                <a href="dashboard.php" class="btn btn-secondary">
-                    Kembali
-                </a>
-
-                <button
-                    type="button"
-                    onclick="window.print()"
-                    class="btn btn-primary">
-                    Cetak
-                </button>
+                <ul class="pagination mt-2" id="pagination"></ul>
 
             </div>
 
         </div>
+
     </div>
 
-</main>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
     const tabel = document.getElementById('tabelRiwayat');
-
-    if (!tabel) {
-        return;
-    }
-
     const tbody = tabel.querySelector('tbody');
-    const inputCari = document.getElementById('cariTabel');
-    const jumlahBaris = document.getElementById('jumlahBaris');
-    const infoTabel = document.getElementById('infoTabel');
-    const pagination = document.getElementById('paginationTabel');
-    const headers = tabel.querySelectorAll('thead th[data-sort]');
 
-    let semuaBaris = Array.from(tbody.querySelectorAll('tr'))
-        .filter(function (baris) {
-            return !baris.classList.contains('baris-kosong');
+    const baris = Array.from(
+        tbody.querySelectorAll('.baris-data')
+    );
+
+    const cari = document.getElementById('cariData');
+    const jumlah = document.getElementById('jumlahData');
+    const info = document.getElementById('infoData');
+    const pagination = document.getElementById('pagination');
+
+    let halaman = 1;
+
+    function tampilkanData() {
+
+        const kata = cari.value.toLowerCase().trim();
+
+        const hasil = baris.filter(function (row) {
+            return row.textContent.toLowerCase().includes(kata);
         });
 
-    let halamanAktif = 1;
-    let kolomUrut = -1;
-    let arahUrut = 1;
-
-    function renderTabel() {
-
-        const kata = inputCari.value.trim().toLowerCase();
-
-        const data = semuaBaris.filter(function (baris) {
-            return baris.textContent.toLowerCase().includes(kata);
-        });
-
-        const pilihan = jumlahBaris.value;
-
-        const perHalaman = pilihan === 'all'
-            ? Math.max(data.length, 1)
-            : parseInt(pilihan, 10);
-
-        const total = data.length;
+        let perHalaman = jumlah.value === 'all'
+            ? Math.max(hasil.length, 1)
+            : parseInt(jumlah.value);
 
         const totalHalaman = Math.max(
             1,
-            Math.ceil(total / perHalaman)
+            Math.ceil(hasil.length / perHalaman)
         );
 
-        if (halamanAktif > totalHalaman) {
-            halamanAktif = totalHalaman;
+        if (halaman > totalHalaman) {
+            halaman = totalHalaman;
         }
 
-        const awal = (halamanAktif - 1) * perHalaman;
+        const awal = (halaman - 1) * perHalaman;
+        const akhir = Math.min(awal + perHalaman, hasil.length);
 
-        const akhir = pilihan === 'all'
-            ? total
-            : Math.min(awal + perHalaman, total);
-
-        semuaBaris.forEach(function (baris) {
-            baris.style.display = 'none';
+        baris.forEach(function (row) {
+            row.style.display = 'none';
         });
 
-        data.forEach(function (baris, indeks) {
-            baris.style.display =
-                indeks >= awal && indeks < akhir ? '' : 'none';
-        });
-
-        let barisKosong = tbody.querySelector('.baris-kosong');
-
-        if (total === 0) {
-
-            if (!barisKosong) {
-
-                barisKosong = document.createElement('tr');
-                barisKosong.className = 'baris-kosong';
-
-                const sel = document.createElement('td');
-
-                sel.colSpan = 6;
-                sel.className = 'text-center';
-
-                barisKosong.appendChild(sel);
-                tbody.appendChild(barisKosong);
+        hasil.forEach(function (row, index) {
+            if (index >= awal && index < akhir) {
+                row.style.display = '';
             }
+        });
 
-            barisKosong.style.display = '';
-
-            barisKosong.querySelector('td').textContent =
-                semuaBaris.length === 0
-                    ? 'Belum ada data pelanggaran.'
-                    : 'Data yang dicari tidak ditemukan.';
-
-        } else if (barisKosong) {
-
-            barisKosong.style.display = 'none';
+        if (hasil.length === 0 && baris.length > 0) {
+            info.textContent = 'Data yang dicari tidak ditemukan.';
+        } else if (hasil.length > 0) {
+            info.textContent =
+                'Menampilkan ' + (awal + 1) +
+                ' sampai ' + akhir +
+                ' dari ' + hasil.length + ' data.';
+        } else {
+            info.textContent = 'Belum ada data riwayat.';
         }
 
-        infoTabel.textContent = total === 0
-            ? 'Tidak ada data yang ditampilkan.'
-            : 'Menampilkan ' + (awal + 1) + '–' + akhir +
-              ' dari ' + total + ' data.';
-
-        renderPagination(totalHalaman);
+        buatPagination(totalHalaman);
     }
 
-    function renderPagination(totalHalaman) {
+    function buatPagination(total) {
 
         pagination.innerHTML = '';
 
-        function buatTombol(teks, halaman, nonaktif, aktif) {
+        function tombol(teks, tujuan, aktif, nonaktif) {
 
-            const tombol = document.createElement('button');
+            const li = document.createElement('li');
+            li.className = 'page-item';
 
-            tombol.type = 'button';
-            tombol.textContent = teks;
-            tombol.disabled = nonaktif;
+            if (aktif) li.classList.add('active');
+            if (nonaktif) li.classList.add('disabled');
 
-            if (aktif) {
-                tombol.classList.add('active');
-            }
+            const a = document.createElement('a');
+            a.href = '#';
+            a.className = 'page-link';
+            a.textContent = teks;
 
-            tombol.addEventListener('click', function () {
-                halamanAktif = halaman;
-                renderTabel();
+            a.addEventListener('click', function (event) {
+
+                event.preventDefault();
+
+                if (nonaktif) return;
+
+                halaman = tujuan;
+                tampilkanData();
             });
 
-            pagination.appendChild(tombol);
+            li.appendChild(a);
+            pagination.appendChild(li);
         }
 
-        buatTombol(
-            'Sebelumnya',
-            halamanAktif - 1,
-            halamanAktif === 1,
-            false
-        );
+        tombol('‹', halaman - 1, false, halaman === 1);
 
-        for (let i = 1; i <= totalHalaman; i++) {
+        for (let i = 1; i <= total; i++) {
 
             if (
-                totalHalaman <= 7 ||
+                total <= 7 ||
                 i === 1 ||
-                i === totalHalaman ||
-                Math.abs(i - halamanAktif) <= 1
+                i === total ||
+                Math.abs(i - halaman) <= 1
             ) {
-
-                buatTombol(
-                    String(i),
+                tombol(
                     i,
-                    false,
-                    i === halamanAktif
+                    i,
+                    i === halaman,
+                    false
                 );
-
-            } else if (
-                i === halamanAktif - 2 ||
-                i === halamanAktif + 2
-            ) {
-
-                const titik = document.createElement('span');
-
-                titik.textContent = '...';
-                titik.style.padding = '8px';
-
-                pagination.appendChild(titik);
             }
         }
 
-        buatTombol(
-            'Selanjutnya',
-            halamanAktif + 1,
-            halamanAktif === totalHalaman,
-            false
-        );
+        tombol('›', halaman + 1, false, halaman === total);
     }
 
-    headers.forEach(function (header, indeks) {
-
-        header.addEventListener('click', function () {
-
-            if (kolomUrut === indeks) {
-                arahUrut *= -1;
-            } else {
-                kolomUrut = indeks;
-                arahUrut = 1;
-            }
-
-            semuaBaris.sort(function (a, b) {
-
-                let teksA = a.cells[indeks].textContent.trim();
-                let teksB = b.cells[indeks].textContent.trim();
-
-                if (header.dataset.sort === 'number') {
-                    return (Number(teksA) - Number(teksB)) * arahUrut;
-                }
-
-                return teksA.localeCompare(teksB, 'id', {
-                    numeric: true,
-                    sensitivity: 'base'
-                }) * arahUrut;
-
-            });
-
-            semuaBaris.forEach(function (baris) {
-                tbody.appendChild(baris);
-            });
-
-            halamanAktif = 1;
-            renderTabel();
-
-        });
-
+    cari.addEventListener('input', function () {
+        halaman = 1;
+        tampilkanData();
     });
 
-    inputCari.addEventListener('input', function () {
-        halamanAktif = 1;
-        renderTabel();
+    jumlah.addEventListener('change', function () {
+        halaman = 1;
+        tampilkanData();
     });
-
-    jumlahBaris.addEventListener('change', function () {
-        halamanAktif = 1;
-        renderTabel();
-    });
-
-    // CETAK SELURUH DATA
-    let kondisiCetak = null;
 
     window.addEventListener('beforeprint', function () {
-
-        kondisiCetak = {
-            pencarian: inputCari.value,
-            jumlah: jumlahBaris.value,
-            halaman: halamanAktif
-        };
-
-        tbody.replaceChildren();
-
-        if (semuaBaris.length === 0) {
-
-            const tr = document.createElement('tr');
-            const td = document.createElement('td');
-
-            td.colSpan = 6;
-            td.className = 'text-center';
-            td.textContent = 'Belum ada data pelanggaran.';
-
-            tr.appendChild(td);
-            tbody.appendChild(tr);
-
-            return;
-        }
-
-        semuaBaris.forEach(function (tr) {
-            tbody.appendChild(tr);
+        baris.forEach(function (row) {
+            row.style.display = '';
         });
     });
 
-    window.addEventListener('afterprint', function () {
+    window.addEventListener('afterprint', tampilkanData);
 
-        if (!kondisiCetak) {
-            return;
-        }
-
-        inputCari.value = kondisiCetak.pencarian;
-        jumlahBaris.value = kondisiCetak.jumlah;
-        halamanAktif = kondisiCetak.halaman;
-
-        kondisiCetak = null;
-
-        renderTabel();
-    });
-
-    renderTabel();
+    tampilkanData();
 
 });
 </script>

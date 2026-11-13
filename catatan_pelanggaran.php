@@ -1,10 +1,10 @@
+
 <?php
 include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
 $role = $_SESSION['role'] ?? '';
 $nama_login = $_SESSION['name'] ?? '';
-$email_login = $_SESSION['email'] ?? '';
 
 $error = '';
 $success = $_SESSION['success_catatan'] ?? '';
@@ -30,29 +30,52 @@ if ($role === 'admin') {
     $menu = $menu_wali_kelas ?? [];
 }
 
-// AMBIL EMAIL LOGIN
-if ($email_login === '') {
-    $user_id = (int)($_SESSION['id'] ?? $_SESSION['user_id'] ?? 0);
+// ========================================
+// IDENTITAS GURU BERDASARKAN AKUN LOGIN
+// ========================================
+
+$guru_id = 0;
+$nama_guru = '';
+$data_guru = null;
+
+if ($role !== 'admin') {
+
+    $user_id = (int)($_SESSION['id'] ?? 0);
 
     if ($user_id > 0) {
+
         $stmt = mysqli_prepare($koneksi, "
-            SELECT email FROM t_users
-            WHERE id = ? LIMIT 1
+            SELECT id, nama
+            FROM t_guru
+            WHERE user_id = ?
+              AND status_aktif = 1
+            LIMIT 1
         ");
 
-        mysqli_stmt_bind_param($stmt, 'i', $user_id);
-        mysqli_stmt_execute($stmt);
+        if ($stmt) {
 
-        $hasil = mysqli_stmt_get_result($stmt);
-        $user = mysqli_fetch_assoc($hasil);
+            mysqli_stmt_bind_param($stmt, 'i', $user_id);
+            mysqli_stmt_execute($stmt);
 
-        mysqli_stmt_close($stmt);
+            $hasil = mysqli_stmt_get_result($stmt);
+            $data_guru = mysqli_fetch_assoc($hasil);
 
-        $email_login = $user['email'] ?? '';
+            mysqli_stmt_close($stmt);
+        }
+    }
+
+    if ($data_guru) {
+        $guru_id = (int)$data_guru['id'];
+        $nama_guru = $data_guru['nama'];
+    } else {
+        $error = 'Data guru tidak ditemukan atau tidak aktif.';
     }
 }
 
+// ========================================
 // TAHUN AJARAN AKTIF
+// ========================================
+
 $q_tahun = mysqli_query($koneksi, "
     SELECT id, nama
     FROM t_tahun_ajaran
@@ -60,74 +83,41 @@ $q_tahun = mysqli_query($koneksi, "
     LIMIT 1
 ");
 
+if (!$q_tahun) {
+    die('Gagal mengambil tahun ajaran: ' . mysqli_error($koneksi));
+}
+
 $data_tahun = mysqli_fetch_assoc($q_tahun);
 $tahun_ajaran_id = (int)($data_tahun['id'] ?? 0);
 
-// IDENTITAS GURU
-$guru_id = 0;
-$nama_guru = '';
-$data_guru = null;
-
-if ($role !== 'admin') {
-
-    if ($email_login !== '') {
-        $stmt = mysqli_prepare($koneksi, "
-            SELECT id, nama
-            FROM t_guru
-            WHERE email = ?
-            LIMIT 1
-        ");
-
-        mysqli_stmt_bind_param($stmt, 's', $email_login);
-        mysqli_stmt_execute($stmt);
-
-        $hasil = mysqli_stmt_get_result($stmt);
-        $data_guru = mysqli_fetch_assoc($hasil);
-
-        mysqli_stmt_close($stmt);
-    }
-
-    if (!$data_guru && $nama_login !== '') {
-        $stmt = mysqli_prepare($koneksi, "
-            SELECT id, nama
-            FROM t_guru
-            WHERE nama = ?
-            LIMIT 1
-        ");
-
-        mysqli_stmt_bind_param($stmt, 's', $nama_login);
-        mysqli_stmt_execute($stmt);
-
-        $hasil = mysqli_stmt_get_result($stmt);
-        $data_guru = mysqli_fetch_assoc($hasil);
-
-        mysqli_stmt_close($stmt);
-    }
-
-    if ($data_guru) {
-        $guru_id = (int)$data_guru['id'];
-        $nama_guru = $data_guru['nama'];
-    } else {
-        $error = 'Data guru tidak ditemukan. Cocokkan akun login dengan data guru.';
-    }
-}
-
+// ========================================
 // DATA GURU UNTUK ADMIN
+// ========================================
+
 $data_guru_admin = [];
 
 if ($role === 'admin') {
+
     $q_guru = mysqli_query($koneksi, "
         SELECT id, nama
         FROM t_guru
+        WHERE status_aktif = 1
         ORDER BY nama ASC
     ");
+
+    if (!$q_guru) {
+        die('Gagal mengambil data guru: ' . mysqli_error($koneksi));
+    }
 
     while ($row = mysqli_fetch_assoc($q_guru)) {
         $data_guru_admin[] = $row;
     }
 }
 
+// ========================================
 // DATA SISWA
+// ========================================
+
 $data_siswa = [];
 
 if ($tahun_ajaran_id > 0 && ($role === 'admin' || $guru_id > 0)) {
@@ -142,8 +132,10 @@ if ($tahun_ajaran_id > 0 && ($role === 'admin' || $guru_id > 0)) {
                 k.id AS kelas_id,
                 k.nama AS nama_kelas
             FROM t_kelas_siswa ks
-            INNER JOIN t_siswa s ON s.id = ks.siswa_id
-            INNER JOIN t_kelas k ON k.id = ks.kelas_id
+            INNER JOIN t_siswa s
+                ON s.id = ks.siswa_id
+            INNER JOIN t_kelas k
+                ON k.id = ks.kelas_id
             INNER JOIN t_wali_kelas wk
                 ON wk.kelas_id = ks.kelas_id
                 AND wk.tahun_ajaran_id = ks.tahun_ajaran_id
@@ -154,7 +146,16 @@ if ($tahun_ajaran_id > 0 && ($role === 'admin' || $guru_id > 0)) {
             ORDER BY k.nama ASC, s.nama ASC
         ");
 
-        mysqli_stmt_bind_param($stmt, 'ii', $tahun_ajaran_id, $guru_id);
+        if (!$stmt) {
+            die('Gagal menyiapkan data siswa: ' . mysqli_error($koneksi));
+        }
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            'ii',
+            $tahun_ajaran_id,
+            $guru_id
+        );
 
     } else {
 
@@ -166,14 +167,24 @@ if ($tahun_ajaran_id > 0 && ($role === 'admin' || $guru_id > 0)) {
                 k.id AS kelas_id,
                 k.nama AS nama_kelas
             FROM t_kelas_siswa ks
-            INNER JOIN t_siswa s ON s.id = ks.siswa_id
-            INNER JOIN t_kelas k ON k.id = ks.kelas_id
+            INNER JOIN t_siswa s
+                ON s.id = ks.siswa_id
+            INNER JOIN t_kelas k
+                ON k.id = ks.kelas_id
             WHERE ks.tahun_ajaran_id = ?
                 AND s.status_aktif = 1
             ORDER BY k.nama ASC, s.nama ASC
         ");
 
-        mysqli_stmt_bind_param($stmt, 'i', $tahun_ajaran_id);
+        if (!$stmt) {
+            die('Gagal menyiapkan data siswa: ' . mysqli_error($koneksi));
+        }
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            'i',
+            $tahun_ajaran_id
+        );
     }
 
     mysqli_stmt_execute($stmt);
@@ -186,7 +197,10 @@ if ($tahun_ajaran_id > 0 && ($role === 'admin' || $guru_id > 0)) {
     mysqli_stmt_close($stmt);
 }
 
+// ========================================
 // DATA PELANGGARAN
+// ========================================
+
 $data_pelanggaran = [];
 
 $q_pelanggaran = mysqli_query($koneksi, "
@@ -196,13 +210,17 @@ $q_pelanggaran = mysqli_query($koneksi, "
     ORDER BY nama ASC
 ");
 
+if (!$q_pelanggaran) {
+    die('Gagal mengambil data pelanggaran: ' . mysqli_error($koneksi));
+}
+
 while ($row = mysqli_fetch_assoc($q_pelanggaran)) {
     $data_pelanggaran[] = $row;
 }
 
-// ==================================================
+// ========================================
 // RIWAYAT CATATAN PELANGGARAN
-// ==================================================
+// ========================================
 
 $data_catatan = [];
 
@@ -244,30 +262,28 @@ $sql_catatan = "
         ON pk.id = ps.pelanggaran_kategori_id
 ";
 
-// BATASAN BERDASARKAN ROLE
-if ($role === 'guru') {
+// ========================================
+// BATASAN RIWAYAT BERDASARKAN ROLE
+// ========================================
+
+// Admin melihat semua catatan.
+// Guru dan wali kelas hanya melihat catatan
+// yang dibuat oleh akun guru tersebut.
+
+if ($role !== 'admin') {
 
     $sql_catatan .= "
         WHERE ps.guru_id = ?
-    ";
-
-} elseif ($role === 'wali_kelas') {
-
-    $sql_catatan .= "
-        WHERE EXISTS (
-            SELECT 1
-            FROM t_wali_kelas wk
-            WHERE wk.guru_id = ?
-                AND wk.kelas_id = ps.kelas_id
-                AND wk.tahun_ajaran_id = ps.tahun_ajaran_id
-                AND wk.status_aktif = 1
-        )
     ";
 }
 
 $sql_catatan .= "
     ORDER BY ps.tanggal DESC, ps.id DESC
 ";
+
+// ========================================
+// EKSEKUSI QUERY RIWAYAT
+// ========================================
 
 if ($role === 'admin') {
 
@@ -276,6 +292,10 @@ if ($role === 'admin') {
 } else {
 
     $stmt_catatan = mysqli_prepare($koneksi, $sql_catatan);
+
+    if (!$stmt_catatan) {
+        die('Gagal menyiapkan riwayat catatan: ' . mysqli_error($koneksi));
+    }
 
     mysqli_stmt_bind_param(
         $stmt_catatan,
@@ -300,17 +320,27 @@ if (isset($stmt_catatan)) {
     mysqli_stmt_close($stmt_catatan);
 }
 
+// ========================================
 // TOTAL POIN
+// ========================================
+
 $total_poin = 0;
 
 foreach ($data_catatan as $catatan) {
     $total_poin += (int)$catatan['poin'];
 }
 
+// ========================================
 // FUNGSI ESCAPE
+// ========================================
+
 function e($value)
 {
-    return htmlspecialchars((string)($value ?? ''), ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars(
+        (string)($value ?? ''),
+        ENT_QUOTES,
+        'UTF-8'
+    );
 }
 ?>
 
@@ -595,7 +625,7 @@ body {
     <?php elseif ($role !== 'admin' && $guru_id <= 0): ?>
 
         <div class="alert alert-danger">
-            Data guru tidak ditemukan.
+            Data guru tidak ditemukan atau tidak aktif.
         </div>
 
     <?php else: ?>

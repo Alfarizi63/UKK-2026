@@ -5,8 +5,6 @@ include 'includes/cek_session.php';
 include 'config/koneksi.php';
 
 $role = $_SESSION['role'] ?? '';
-$email_login = trim($_SESSION['email'] ?? '');
-$nama_login = trim($_SESSION['name'] ?? '');
 
 if (!in_array($role, ['admin', 'guru', 'wali_kelas'], true)) {
     header('Location: dashboard.php');
@@ -51,49 +49,29 @@ if ($data_tahun_aktif) {
 }
 
 // ========================================
-// CARI ID GURU YANG SEDANG LOGIN
+// IDENTITAS GURU YANG LOGIN
 // ========================================
 
 if ($is_guru) {
 
-    // Cari berdasarkan email terlebih dahulu.
-    if ($email_login !== '') {
+    $user_id = (int) ($_SESSION['id'] ?? 0);
+
+    if ($user_id > 0) {
 
         $stmt_guru = mysqli_prepare(
             $koneksi,
-            "SELECT id FROM t_guru WHERE email = ? LIMIT 1"
+            "SELECT id, nama
+             FROM t_guru
+             WHERE user_id = ?
+               AND status_aktif = 1
+             LIMIT 1"
         );
 
         if (!$stmt_guru) {
-            die("Gagal menyiapkan data guru: " . mysqli_error($koneksi));
+            die("Gagal mengambil data guru: " . mysqli_error($koneksi));
         }
 
-        mysqli_stmt_bind_param($stmt_guru, "s", $email_login);
-        mysqli_stmt_execute($stmt_guru);
-
-        $result_guru = mysqli_stmt_get_result($stmt_guru);
-        $data_guru = mysqli_fetch_assoc($result_guru);
-
-        mysqli_stmt_close($stmt_guru);
-
-        if ($data_guru) {
-            $guru_id = (int) $data_guru['id'];
-        }
-    }
-
-    // Jika email tidak ditemukan, gunakan nama sebagai cadangan.
-    if ($guru_id === 0 && $nama_login !== '') {
-
-        $stmt_guru = mysqli_prepare(
-            $koneksi,
-            "SELECT id FROM t_guru WHERE nama = ? LIMIT 1"
-        );
-
-        if (!$stmt_guru) {
-            die("Gagal menyiapkan pencarian guru: " . mysqli_error($koneksi));
-        }
-
-        mysqli_stmt_bind_param($stmt_guru, "s", $nama_login);
+        mysqli_stmt_bind_param($stmt_guru, "i", $user_id);
         mysqli_stmt_execute($stmt_guru);
 
         $result_guru = mysqli_stmt_get_result($stmt_guru);
@@ -107,7 +85,7 @@ if ($is_guru) {
     }
 
     // ========================================
-    // CEK PENUGASAN WALI KELAS TAHUN AKTIF
+    // CEK PENUGASAN WALI KELAS
     // ========================================
 
     if ($guru_id > 0 && $tahun_ajaran_aktif_id > 0) {
@@ -132,7 +110,7 @@ if ($is_guru) {
         $stmt_wali = mysqli_prepare($koneksi, $sql_wali);
 
         if (!$stmt_wali) {
-            die("Gagal menyiapkan pengecekan wali kelas: " . mysqli_error($koneksi));
+            die("Gagal mengecek wali kelas: " . mysqli_error($koneksi));
         }
 
         mysqli_stmt_bind_param(
@@ -150,17 +128,14 @@ if ($is_guru) {
         mysqli_stmt_close($stmt_wali);
 
         if ($data_wali) {
-
             $akses_wali_kelas = true;
-
             $kelas_wali_id = (int) $data_wali['kelas_id'];
-            $tahun_ajaran_id = $tahun_ajaran_aktif_id;
             $kelas_id = $kelas_wali_id;
+            $tahun_ajaran_id = $tahun_ajaran_aktif_id;
             $nama_kelas_wali = $data_wali['nama_kelas'];
         }
     }
 
-    // Guru biasa atau wali kelas tanpa penugasan aktif tidak boleh membuka laporan.
     if (!$akses_wali_kelas) {
         header('Location: dashboard.php');
         exit;
@@ -168,7 +143,7 @@ if ($is_guru) {
 }
 
 // ========================================
-// NON-ADMIN WAJIB MENGGUNAKAN TAHUN AKTIF
+// NON-ADMIN HANYA TAHUN AKTIF DAN KELASNYA
 // ========================================
 
 if (!$is_admin) {
@@ -177,7 +152,7 @@ if (!$is_admin) {
 }
 
 // ========================================
-// AMBIL DATA TAHUN AJARAN UNTUK FILTER
+// DATA FILTER TAHUN AJARAN
 // ========================================
 
 if ($is_admin) {
@@ -199,7 +174,7 @@ if ($is_admin) {
     );
 
     if (!$stmt_tahun) {
-        die("Gagal menyiapkan filter tahun ajaran: " . mysqli_error($koneksi));
+        die("Gagal mengambil filter tahun: " . mysqli_error($koneksi));
     }
 
     mysqli_stmt_bind_param($stmt_tahun, "i", $tahun_ajaran_id);
@@ -219,7 +194,7 @@ if (isset($stmt_tahun) && !$is_admin) {
 }
 
 // ========================================
-// AMBIL DATA KELAS UNTUK FILTER
+// DATA FILTER KELAS
 // ========================================
 
 if ($is_admin) {
@@ -241,10 +216,10 @@ if ($is_admin) {
     );
 
     if (!$stmt_kelas) {
-        die("Gagal menyiapkan filter kelas: " . mysqli_error($koneksi));
+        die("Gagal mengambil filter kelas: " . mysqli_error($koneksi));
     }
 
-    mysqli_stmt_bind_param($stmt_kelas, "i", $kelas_wali_id);
+    mysqli_stmt_bind_param($stmt_kelas, "i", $kelas_id);
     mysqli_stmt_execute($stmt_kelas);
 
     $query_kelas = mysqli_stmt_get_result($stmt_kelas);
@@ -261,56 +236,60 @@ if (isset($stmt_kelas) && !$is_admin) {
 }
 
 // ========================================
-// AMBIL LAPORAN PENEMPATAN SISWA
+// AMBIL DATA LAPORAN PELANGGARAN
 // ========================================
 
 $sql = "
     SELECT
+        ps.id,
         s.nis,
-        s.nama AS nama_siswa,
-        k.nama AS nama_kelas,
-        k.tingkat,
-        k.jurusan,
+        COALESCE(NULLIF(ps.nama_siswa, ''), s.nama) AS nama_siswa,
+        COALESCE(NULLIF(ps.nama_kelas, ''), k.nama) AS nama_kelas,
+        COALESCE(NULLIF(ps.nama_pelanggaran, ''), 'Tidak diketahui') AS nama_pelanggaran,
+        ps.tanggal,
+        ps.poin,
+        ps.tindakan,
+        ps.nama_guru,
+        ps.status,
         ta.nama AS tahun_ajaran
-    FROM t_kelas_siswa ks
-    INNER JOIN t_siswa s
-        ON ks.siswa_id = s.id
-    INNER JOIN t_kelas k
-        ON ks.kelas_id = k.id
-    INNER JOIN t_tahun_ajaran ta
-        ON ks.tahun_ajaran_id = ta.id
+    FROM t_pelanggaran_siswa ps
+    LEFT JOIN t_siswa s
+        ON s.id = ps.siswa_id
+    LEFT JOIN t_kelas k
+        ON k.id = ps.kelas_id
+    LEFT JOIN t_tahun_ajaran ta
+        ON ta.id = ps.tahun_ajaran_id
     WHERE 1 = 1
 ";
 
-// Admin bebas memilih tahun ajaran dan kelas.
+// Admin bisa melihat seluruh data dan menggunakan filter.
 if ($is_admin) {
 
     if ($tahun_ajaran_id > 0) {
-        $sql .= " AND ks.tahun_ajaran_id = " . $tahun_ajaran_id;
+        $sql .= " AND ps.tahun_ajaran_id = " . $tahun_ajaran_id;
     }
 
     if ($kelas_id > 0) {
-        $sql .= " AND ks.kelas_id = " . $kelas_id;
+        $sql .= " AND ps.kelas_id = " . $kelas_id;
     }
 
-// Wali kelas hanya melihat kelas dan tahun ajaran yang ditugaskan.
+// Wali kelas hanya melihat pelanggaran siswa di kelasnya.
 } else if ($akses_wali_kelas) {
 
-    $sql .= " AND ks.kelas_id = " . $kelas_wali_id;
-    $sql .= " AND ks.tahun_ajaran_id = " . $tahun_ajaran_aktif_id;
+    $sql .= " AND ps.kelas_id = " . $kelas_wali_id;
+    $sql .= " AND ps.tahun_ajaran_id = " . $tahun_ajaran_aktif_id;
 
 } else {
 
-    // Pengaman tambahan.
     $sql .= " AND 1 = 0";
 }
 
-$sql .= " ORDER BY k.nama ASC, s.nama ASC";
+$sql .= " ORDER BY ps.tanggal DESC, ps.id DESC";
 
 $query_laporan = mysqli_query($koneksi, $sql);
 
 if (!$query_laporan) {
-    die("Gagal mengambil laporan: " . mysqli_error($koneksi));
+    die("Gagal mengambil laporan pelanggaran: " . mysqli_error($koneksi));
 }
 
 $data_laporan = [];
@@ -328,7 +307,7 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Laporan Penempatan Siswa</title>
+    <title>Laporan Pelanggaran Siswa</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -407,7 +386,7 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
             }
 
             #tabelLaporan {
-                font-size: 11px;
+                font-size: 10px;
             }
 
             #tabelLaporan tr {
@@ -426,10 +405,10 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
     <div class="d-flex justify-content-between align-items-center flex-wrap">
 
         <div>
-            <h1>Laporan Penempatan Siswa</h1>
+            <h1>Laporan Pelanggaran Siswa</h1>
 
             <p class="text-muted">
-                Laporan data siswa berdasarkan kelas dan tahun ajaran.
+                Laporan data pelanggaran siswa berdasarkan kelas dan tahun ajaran.
             </p>
         </div>
 
@@ -454,7 +433,7 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
 
         <div class="alert alert-info">
             <strong>Laporan Wali Kelas</strong><br>
-            Kamu hanya dapat melihat data penempatan siswa kelas
+            Menampilkan laporan pelanggaran siswa kelas
             <strong><?= htmlspecialchars($nama_kelas_wali) ?></strong>
             pada tahun ajaran
             <strong><?= htmlspecialchars($nama_tahun_aktif) ?></strong>.
@@ -595,7 +574,7 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
         <div class="card-header bg-white">
 
             <h4 class="mb-0">
-                Data Penempatan Siswa
+                Data Pelanggaran Siswa
             </h4>
 
         </div>
@@ -626,7 +605,7 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                 <input type="search"
                        id="cariData"
                        class="form-control"
-                       placeholder="Cari NIS, nama, kelas, atau jurusan...">
+                       placeholder="Cari NIS, nama, pelanggaran, atau kelas...">
 
             </div>
 
@@ -642,8 +621,12 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                             <th>NIS</th>
                             <th>Nama Siswa</th>
                             <th>Kelas</th>
-                            <th>Tingkat</th>
-                            <th>Jurusan</th>
+                            <th>Jenis Pelanggaran</th>
+                            <th>Tanggal</th>
+                            <th>Poin</th>
+                            <th>Teguran / Tindakan</th>
+                            <th>Guru Pencatat</th>
+                            <th>Status</th>
                             <th>Tahun Ajaran</th>
                         </tr>
 
@@ -660,27 +643,51 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                                     <td><?= $index + 1 ?></td>
 
                                     <td>
-                                        <?= htmlspecialchars($row['nis'] ?? '') ?>
+                                        <?= htmlspecialchars($row['nis'] ?? '-') ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars($row['nama_siswa']) ?>
+                                        <?= htmlspecialchars($row['nama_siswa'] ?? '-') ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars($row['nama_kelas']) ?>
+                                        <?= htmlspecialchars($row['nama_kelas'] ?? '-') ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars($row['tingkat']) ?>
+                                        <?= htmlspecialchars($row['nama_pelanggaran'] ?? '-') ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars($row['jurusan']) ?>
+                                        <?php
+                                        if (!empty($row['tanggal'])) {
+                                            echo htmlspecialchars(
+                                                date('d-m-Y', strtotime($row['tanggal']))
+                                            );
+                                        } else {
+                                            echo '-';
+                                        }
+                                        ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars($row['tahun_ajaran']) ?>
+                                        <?= htmlspecialchars((string) ($row['poin'] ?? 0)) ?>
+                                    </td>
+
+                                    <td>
+                                        <?= htmlspecialchars($row['tindakan'] ?? '-') ?>
+                                    </td>
+
+                                    <td>
+                                        <?= htmlspecialchars($row['nama_guru'] ?? '-') ?>
+                                    </td>
+
+                                    <td>
+                                        <?= htmlspecialchars($row['status'] ?? '-') ?>
+                                    </td>
+
+                                    <td>
+                                        <?= htmlspecialchars($row['tahun_ajaran'] ?? '-') ?>
                                     </td>
 
                                 </tr>
@@ -690,8 +697,8 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                         <?php } else { ?>
 
                             <tr>
-                                <td colspan="7" class="text-center">
-                                    Tidak ada data penempatan siswa.
+                                <td colspan="11" class="text-center">
+                                    Tidak ada data pelanggaran siswa.
                                 </td>
                             </tr>
 
@@ -724,7 +731,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const paginasi = document.getElementById('paginasi');
 
     const baris = Array.from(tbody.querySelectorAll('tr'))
-        .filter(tr => tr.cells.length === 7);
+        .filter(tr => tr.cells.length === 11);
 
     let halaman = 1;
     let kolomUrut = -1;
@@ -779,7 +786,6 @@ document.addEventListener('DOMContentLoaded', function () {
             dataTampil.forEach((tr, index) => {
 
                 tr.cells[0].textContent = awal + index + 1;
-
                 tbody.appendChild(tr);
 
             });
@@ -789,9 +795,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const tr = document.createElement('tr');
             const td = document.createElement('td');
 
-            td.colSpan = 7;
+            td.colSpan = 11;
             td.className = 'text-center';
-            td.textContent = 'Tidak ada data penempatan siswa.';
+            td.textContent = 'Tidak ada data pelanggaran siswa.';
 
             tr.appendChild(td);
             tbody.appendChild(tr);
@@ -824,10 +830,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 : 'btn btn-outline-primary btn-sm';
 
             btn.addEventListener('click', function () {
-
                 halaman = tujuan;
                 renderTabel();
-
             });
 
             paginasi.appendChild(btn);
@@ -857,17 +861,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     cari.addEventListener('input', function () {
-
         halaman = 1;
         renderTabel();
-
     });
 
     jumlah.addEventListener('change', function () {
-
         halaman = 1;
         renderTabel();
-
     });
 
     tabel.querySelectorAll('thead th').forEach(function (th, index) {
@@ -890,7 +890,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     });
 
-    // Cetak seluruh data, bukan hanya halaman yang sedang tampil.
+    // Cetak seluruh data, bukan hanya halaman yang tampil.
 
     let kondisiCetak = null;
 
@@ -927,9 +927,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const tr = document.createElement('tr');
             const td = document.createElement('td');
 
-            td.colSpan = 7;
+            td.colSpan = 11;
             td.className = 'text-center';
-            td.textContent = 'Tidak ada data penempatan siswa.';
+            td.textContent = 'Tidak ada data pelanggaran siswa.';
 
             tr.appendChild(td);
             tbody.appendChild(tr);
@@ -941,7 +941,6 @@ document.addEventListener('DOMContentLoaded', function () {
         semuaBaris.forEach(function (tr, index) {
 
             tr.cells[0].textContent = index + 1;
-
             tbody.appendChild(tr);
 
         });
