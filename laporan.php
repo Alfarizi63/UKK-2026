@@ -14,8 +14,8 @@ if (!in_array($role, ['admin', 'guru', 'wali_kelas'], true)) {
 $is_admin = ($role === 'admin');
 $is_guru = in_array($role, ['guru', 'wali_kelas'], true);
 
-$tahun_ajaran_id = (int) ($_GET['tahun_ajaran_id'] ?? 0);
-$kelas_id = (int) ($_GET['kelas_id'] ?? 0);
+$tahun_ajaran_id = (int)($_GET['tahun_ajaran_id'] ?? 0);
+$kelas_id = (int)($_GET['kelas_id'] ?? 0);
 
 $guru_id = 0;
 $kelas_wali_id = 0;
@@ -25,79 +25,69 @@ $nama_tahun_aktif = '';
 $akses_wali_kelas = false;
 
 // ========================================
-// AMBIL TAHUN AJARAN AKTIF
+// TAHUN AJARAN AKTIF
 // ========================================
 
-$query_tahun_aktif = mysqli_query(
-    $koneksi,
-    "SELECT id, nama
-     FROM t_tahun_ajaran
-     WHERE status_aktif = 1
-     ORDER BY id DESC
-     LIMIT 1"
-);
+$query_tahun_aktif = mysqli_query($koneksi, "
+    SELECT id, nama
+    FROM t_tahun_ajaran
+    WHERE status_aktif = 1
+    ORDER BY id DESC
+    LIMIT 1
+");
 
 if (!$query_tahun_aktif) {
-    die("Gagal mengambil tahun ajaran aktif: " . mysqli_error($koneksi));
+    die(mysqli_error($koneksi));
 }
 
 $data_tahun_aktif = mysqli_fetch_assoc($query_tahun_aktif);
 
 if ($data_tahun_aktif) {
-    $tahun_ajaran_aktif_id = (int) $data_tahun_aktif['id'];
+    $tahun_ajaran_aktif_id = (int)$data_tahun_aktif['id'];
     $nama_tahun_aktif = $data_tahun_aktif['nama'];
 }
 
 // ========================================
-// IDENTITAS GURU YANG LOGIN
+// IDENTITAS GURU LOGIN
 // ========================================
 
 if ($is_guru) {
 
-    $user_id = (int) ($_SESSION['id'] ?? 0);
+    $user_id = (int)($_SESSION['id'] ?? 0);
 
-    if ($user_id > 0) {
+    $stmt = mysqli_prepare($koneksi, "
+        SELECT id
+        FROM t_guru
+        WHERE user_id = ?
+          AND status_aktif = 1
+        LIMIT 1
+    ");
 
-        $stmt_guru = mysqli_prepare(
-            $koneksi,
-            "SELECT id, nama
-             FROM t_guru
-             WHERE user_id = ?
-               AND status_aktif = 1
-             LIMIT 1"
-        );
-
-        if (!$stmt_guru) {
-            die("Gagal mengambil data guru: " . mysqli_error($koneksi));
-        }
-
-        mysqli_stmt_bind_param($stmt_guru, "i", $user_id);
-        mysqli_stmt_execute($stmt_guru);
-
-        $result_guru = mysqli_stmt_get_result($stmt_guru);
-        $data_guru = mysqli_fetch_assoc($result_guru);
-
-        mysqli_stmt_close($stmt_guru);
-
-        if ($data_guru) {
-            $guru_id = (int) $data_guru['id'];
-        }
+    if (!$stmt) {
+        die(mysqli_error($koneksi));
     }
 
+    mysqli_stmt_bind_param($stmt, 'i', $user_id);
+    mysqli_stmt_execute($stmt);
+
+    $data_guru = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+
+    mysqli_stmt_close($stmt);
+
+    $guru_id = (int)($data_guru['id'] ?? 0);
+
     // ========================================
-    // CEK PENUGASAN WALI KELAS
+    // CEK WALI KELAS
     // ========================================
 
     if ($guru_id > 0 && $tahun_ajaran_aktif_id > 0) {
 
-        $sql_wali = "
+        $stmt = mysqli_prepare($koneksi, "
             SELECT
                 wk.kelas_id,
-                wk.tahun_ajaran_id,
                 k.nama AS nama_kelas
             FROM t_wali_kelas wk
-            INNER JOIN t_kelas k
-                ON k.id = wk.kelas_id
+            INNER JOIN t_kelas k ON k.id = wk.kelas_id
             INNER JOIN t_tahun_ajaran ta
                 ON ta.id = wk.tahun_ajaran_id
             WHERE wk.guru_id = ?
@@ -105,31 +95,28 @@ if ($is_guru) {
               AND wk.status_aktif = 1
               AND ta.status_aktif = 1
             LIMIT 1
-        ";
+        ");
 
-        $stmt_wali = mysqli_prepare($koneksi, $sql_wali);
-
-        if (!$stmt_wali) {
-            die("Gagal mengecek wali kelas: " . mysqli_error($koneksi));
+        if (!$stmt) {
+            die(mysqli_error($koneksi));
         }
 
         mysqli_stmt_bind_param(
-            $stmt_wali,
-            "ii",
+            $stmt,
+            'ii',
             $guru_id,
             $tahun_ajaran_aktif_id
         );
 
-        mysqli_stmt_execute($stmt_wali);
+        mysqli_stmt_execute($stmt);
 
-        $result_wali = mysqli_stmt_get_result($stmt_wali);
-        $data_wali = mysqli_fetch_assoc($result_wali);
+        $data_wali = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
-        mysqli_stmt_close($stmt_wali);
+        mysqli_stmt_close($stmt);
 
         if ($data_wali) {
             $akses_wali_kelas = true;
-            $kelas_wali_id = (int) $data_wali['kelas_id'];
+            $kelas_wali_id = (int)$data_wali['kelas_id'];
             $kelas_id = $kelas_wali_id;
             $tahun_ajaran_id = $tahun_ajaran_aktif_id;
             $nama_kelas_wali = $data_wali['nama_kelas'];
@@ -143,7 +130,7 @@ if ($is_guru) {
 }
 
 // ========================================
-// NON-ADMIN HANYA TAHUN AKTIF DAN KELASNYA
+// BATASI AKSES NON-ADMIN
 // ========================================
 
 if (!$is_admin) {
@@ -152,117 +139,122 @@ if (!$is_admin) {
 }
 
 // ========================================
-// DATA FILTER TAHUN AJARAN
+// FILTER TAHUN AJARAN
 // ========================================
 
 if ($is_admin) {
 
-    $query_tahun = mysqli_query(
-        $koneksi,
-        "SELECT id, nama
-         FROM t_tahun_ajaran
-         ORDER BY id DESC"
-    );
+    $query_tahun = mysqli_query($koneksi, "
+        SELECT id, nama
+        FROM t_tahun_ajaran
+        ORDER BY id DESC
+    ");
 
 } else {
 
-    $stmt_tahun = mysqli_prepare(
-        $koneksi,
-        "SELECT id, nama
-         FROM t_tahun_ajaran
-         WHERE id = ?"
-    );
+    $stmt = mysqli_prepare($koneksi, "
+        SELECT id, nama
+        FROM t_tahun_ajaran
+        WHERE id = ?
+    ");
 
-    if (!$stmt_tahun) {
-        die("Gagal mengambil filter tahun: " . mysqli_error($koneksi));
-    }
+    mysqli_stmt_bind_param($stmt, 'i', $tahun_ajaran_id);
+    mysqli_stmt_execute($stmt);
 
-    mysqli_stmt_bind_param($stmt_tahun, "i", $tahun_ajaran_id);
-    mysqli_stmt_execute($stmt_tahun);
-
-    $query_tahun = mysqli_stmt_get_result($stmt_tahun);
+    $query_tahun = mysqli_stmt_get_result($stmt);
+    mysqli_stmt_close($stmt);
 }
 
 if (!$query_tahun) {
-    die("Gagal mengambil tahun ajaran: " . mysqli_error($koneksi));
+    die(mysqli_error($koneksi));
 }
 
 $data_tahun = mysqli_fetch_all($query_tahun, MYSQLI_ASSOC);
 
-if (isset($stmt_tahun) && !$is_admin) {
-    mysqli_stmt_close($stmt_tahun);
-}
-
 // ========================================
-// DATA FILTER KELAS
+// FILTER KELAS
 // ========================================
 
 if ($is_admin) {
 
-    $query_kelas = mysqli_query(
-        $koneksi,
-        "SELECT id, nama, tingkat, jurusan
-         FROM t_kelas
-         ORDER BY tingkat, jurusan, nama"
-    );
+    $query_kelas = mysqli_query($koneksi, "
+        SELECT id, nama, tingkat, jurusan
+        FROM t_kelas
+        ORDER BY tingkat, jurusan, nama
+    ");
 
 } else {
 
-    $stmt_kelas = mysqli_prepare(
-        $koneksi,
-        "SELECT id, nama, tingkat, jurusan
-         FROM t_kelas
-         WHERE id = ?"
-    );
+    $stmt = mysqli_prepare($koneksi, "
+        SELECT id, nama, tingkat, jurusan
+        FROM t_kelas
+        WHERE id = ?
+    ");
 
-    if (!$stmt_kelas) {
-        die("Gagal mengambil filter kelas: " . mysqli_error($koneksi));
-    }
+    mysqli_stmt_bind_param($stmt, 'i', $kelas_id);
+    mysqli_stmt_execute($stmt);
 
-    mysqli_stmt_bind_param($stmt_kelas, "i", $kelas_id);
-    mysqli_stmt_execute($stmt_kelas);
-
-    $query_kelas = mysqli_stmt_get_result($stmt_kelas);
+    $query_kelas = mysqli_stmt_get_result($stmt);
+    mysqli_stmt_close($stmt);
 }
 
 if (!$query_kelas) {
-    die("Gagal mengambil data kelas: " . mysqli_error($koneksi));
+    die(mysqli_error($koneksi));
 }
 
 $data_kelas = mysqli_fetch_all($query_kelas, MYSQLI_ASSOC);
 
-if (isset($stmt_kelas) && !$is_admin) {
-    mysqli_stmt_close($stmt_kelas);
-}
-
 // ========================================
-// AMBIL DATA LAPORAN PELANGGARAN
+// AMBIL LAPORAN PELANGGARAN
 // ========================================
 
 $sql = "
     SELECT
         ps.id,
         s.nis,
-        COALESCE(NULLIF(ps.nama_siswa, ''), s.nama) AS nama_siswa,
-        COALESCE(NULLIF(ps.nama_kelas, ''), k.nama) AS nama_kelas,
-        COALESCE(NULLIF(ps.nama_pelanggaran, ''), 'Tidak diketahui') AS nama_pelanggaran,
+        COALESCE(NULLIF(ps.nama_siswa, ''), s.nama, '-') AS nama_siswa,
+
+        COALESCE(NULLIF(ps.nama_kelas, ''), k.nama, '-') AS nama_kelas,
+
+        COALESCE(
+            NULLIF(NULLIF(ps.nama_pelanggaran, ''), '0'),
+            p.nama,
+            '-'
+        ) AS nama_pelanggaran,
+
         ps.tanggal,
         ps.poin,
         ps.tindakan,
-        ps.nama_guru,
+
+        COALESCE(
+            NULLIF(NULLIF(ps.nama_guru, ''), '0'),
+            g.nama,
+            '-'
+        ) AS nama_guru,
+
         ps.status,
         ta.nama AS tahun_ajaran
+
     FROM t_pelanggaran_siswa ps
+
     LEFT JOIN t_siswa s
         ON s.id = ps.siswa_id
+
     LEFT JOIN t_kelas k
         ON k.id = ps.kelas_id
+
+    LEFT JOIN t_pelanggaran p
+        ON p.id = ps.pelanggaran_id
+
+    LEFT JOIN t_guru g
+        ON g.id = ps.guru_id
+
     LEFT JOIN t_tahun_ajaran ta
         ON ta.id = ps.tahun_ajaran_id
+
     WHERE 1 = 1
 ";
 
-// Admin bisa melihat seluruh data dan menggunakan filter.
 if ($is_admin) {
 
     if ($tahun_ajaran_id > 0) {
@@ -273,15 +265,11 @@ if ($is_admin) {
         $sql .= " AND ps.kelas_id = " . $kelas_id;
     }
 
-// Wali kelas hanya melihat pelanggaran siswa di kelasnya.
-} else if ($akses_wali_kelas) {
+} else {
 
     $sql .= " AND ps.kelas_id = " . $kelas_wali_id;
     $sql .= " AND ps.tahun_ajaran_id = " . $tahun_ajaran_aktif_id;
 
-} else {
-
-    $sql .= " AND 1 = 0";
 }
 
 $sql .= " ORDER BY ps.tanggal DESC, ps.id DESC";
@@ -289,7 +277,7 @@ $sql .= " ORDER BY ps.tanggal DESC, ps.id DESC";
 $query_laporan = mysqli_query($koneksi, $sql);
 
 if (!$query_laporan) {
-    die("Gagal mengambil laporan pelanggaran: " . mysqli_error($koneksi));
+    die("Gagal mengambil laporan: " . mysqli_error($koneksi));
 }
 
 $data_laporan = [];
@@ -408,7 +396,7 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
             <h1>Laporan Pelanggaran Siswa</h1>
 
             <p class="text-muted">
-                Laporan data pelanggaran siswa berdasarkan kelas dan tahun ajaran.
+                Laporan pelanggaran siswa berdasarkan kelas dan tahun ajaran.
             </p>
         </div>
 
@@ -433,7 +421,7 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
 
         <div class="alert alert-info">
             <strong>Laporan Wali Kelas</strong><br>
-            Menampilkan laporan pelanggaran siswa kelas
+            Menampilkan pelanggaran siswa kelas
             <strong><?= htmlspecialchars($nama_kelas_wali) ?></strong>
             pada tahun ajaran
             <strong><?= htmlspecialchars($nama_tahun_aktif) ?></strong>.
@@ -441,7 +429,7 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
 
     <?php } ?>
 
-    <!-- FILTER LAPORAN -->
+    <!-- FILTER -->
 
     <div class="card shadow-sm mb-4 filter-laporan">
 
@@ -458,21 +446,16 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                     <div class="row">
 
                         <div class="col-md-5 mb-3">
-
-                            <label class="form-label">
-                                Tahun Ajaran:
-                            </label>
+                            <label class="form-label">Tahun Ajaran:</label>
 
                             <select name="tahun_ajaran_id" class="form-select">
 
-                                <option value="0">
-                                    Semua Tahun Ajaran
-                                </option>
+                                <option value="0">Semua Tahun Ajaran</option>
 
                                 <?php foreach ($data_tahun as $ta) { ?>
 
                                     <option
-                                        value="<?= (int) $ta['id'] ?>"
+                                        value="<?= (int)$ta['id'] ?>"
                                         <?= $tahun_ajaran_id == $ta['id'] ? 'selected' : '' ?>>
 
                                         <?= htmlspecialchars($ta['nama']) ?>
@@ -482,25 +465,19 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                                 <?php } ?>
 
                             </select>
-
                         </div>
 
                         <div class="col-md-5 mb-3">
-
-                            <label class="form-label">
-                                Kelas:
-                            </label>
+                            <label class="form-label">Kelas:</label>
 
                             <select name="kelas_id" class="form-select">
 
-                                <option value="0">
-                                    Semua Kelas
-                                </option>
+                                <option value="0">Semua Kelas</option>
 
                                 <?php foreach ($data_kelas as $kelas) { ?>
 
                                     <option
-                                        value="<?= (int) $kelas['id'] ?>"
+                                        value="<?= (int)$kelas['id'] ?>"
                                         <?= $kelas_id == $kelas['id'] ? 'selected' : '' ?>>
 
                                         <?= htmlspecialchars(
@@ -514,7 +491,6 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                                 <?php } ?>
 
                             </select>
-
                         </div>
 
                         <div class="col-md-2 d-flex align-items-end mb-3">
@@ -534,29 +510,21 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                 <div class="row">
 
                     <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-                            Tahun Ajaran:
-                        </label>
+                        <label class="form-label">Tahun Ajaran:</label>
 
                         <input type="text"
                                class="form-control"
                                value="<?= htmlspecialchars($nama_tahun_aktif) ?>"
                                readonly>
-
                     </div>
 
                     <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-                            Kelas:
-                        </label>
+                        <label class="form-label">Kelas:</label>
 
                         <input type="text"
                                class="form-control"
                                value="<?= htmlspecialchars($nama_kelas_wali) ?>"
                                readonly>
-
                     </div>
 
                 </div>
@@ -564,19 +532,14 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
             <?php } ?>
 
         </div>
-
     </div>
 
-    <!-- TABEL LAPORAN -->
+    <!-- TABEL -->
 
     <div class="card shadow-sm">
 
         <div class="card-header bg-white">
-
-            <h4 class="mb-0">
-                Data Pelanggaran Siswa
-            </h4>
-
+            <h4 class="mb-0">Data Pelanggaran Siswa</h4>
         </div>
 
         <div class="card-body">
@@ -584,7 +547,6 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
             <div class="kontrol-tabel">
 
                 <label class="mb-0">
-
                     Tampilkan
 
                     <select id="jumlahData"
@@ -599,13 +561,12 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                     </select>
 
                     data
-
                 </label>
 
                 <input type="search"
                        id="cariData"
                        class="form-control"
-                       placeholder="Cari NIS, nama, pelanggaran, atau kelas...">
+                       placeholder="Cari nama, pelanggaran, kelas, atau guru...">
 
             </div>
 
@@ -615,7 +576,6 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                        id="tabelLaporan">
 
                     <thead>
-
                         <tr>
                             <th>No</th>
                             <th>NIS</th>
@@ -629,7 +589,6 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                             <th>Status</th>
                             <th>Tahun Ajaran</th>
                         </tr>
-
                     </thead>
 
                     <tbody>
@@ -659,23 +618,19 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
                                     </td>
 
                                     <td>
-                                        <?php
-                                        if (!empty($row['tanggal'])) {
-                                            echo htmlspecialchars(
-                                                date('d-m-Y', strtotime($row['tanggal']))
-                                            );
-                                        } else {
-                                            echo '-';
-                                        }
-                                        ?>
+                                        <?= !empty($row['tanggal'])
+                                            ? htmlspecialchars(date('d-m-Y', strtotime($row['tanggal'])))
+                                            : '-' ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars((string) ($row['poin'] ?? 0)) ?>
+                                        <?= htmlspecialchars((string)($row['poin'] ?? 0)) ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars($row['tindakan'] ?? '-') ?>
+                                        <?= htmlspecialchars(
+                                            !empty($row['tindakan']) ? $row['tindakan'] : '-'
+                                        ) ?>
                                     </td>
 
                                     <td>
@@ -715,7 +670,6 @@ while ($row = mysqli_fetch_assoc($query_laporan)) {
             <div id="paginasi" class="paginasi"></div>
 
         </div>
-
     </div>
 
 </main>
@@ -784,10 +738,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (dataTampil.length > 0) {
 
             dataTampil.forEach((tr, index) => {
-
                 tr.cells[0].textContent = awal + index + 1;
                 tbody.appendChild(tr);
-
             });
 
         } else {
@@ -835,29 +787,15 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             paginasi.appendChild(btn);
-
         }
 
         tombol('Sebelumnya', halaman - 1, halaman === 1, false);
 
         for (let i = 1; i <= totalHalaman; i++) {
-
-            tombol(
-                String(i),
-                i,
-                false,
-                i === halaman
-            );
-
+            tombol(String(i), i, false, i === halaman);
         }
 
-        tombol(
-            'Berikutnya',
-            halaman + 1,
-            halaman === totalHalaman,
-            false
-        );
-
+        tombol('Berikutnya', halaman + 1, halaman === totalHalaman, false);
     }
 
     cari.addEventListener('input', function () {
@@ -885,12 +823,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             halaman = 1;
             renderTabel();
-
         });
 
     });
-
-    // Cetak seluruh data, bukan hanya halaman yang tampil.
 
     let kondisiCetak = null;
 
@@ -922,6 +857,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         tbody.replaceChildren();
 
+        semuaBaris.forEach(function (tr, index) {
+            tr.cells[0].textContent = index + 1;
+            tbody.appendChild(tr);
+        });
+
         if (semuaBaris.length === 0) {
 
             const tr = document.createElement('tr');
@@ -934,16 +874,7 @@ document.addEventListener('DOMContentLoaded', function () {
             tr.appendChild(td);
             tbody.appendChild(tr);
 
-            return;
-
         }
-
-        semuaBaris.forEach(function (tr, index) {
-
-            tr.cells[0].textContent = index + 1;
-            tbody.appendChild(tr);
-
-        });
 
     });
 
